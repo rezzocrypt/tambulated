@@ -20,8 +20,11 @@
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *   SOFTWARE.
  */
-
 const { defineConfig } = require('@vue/cli-service')
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+
 module.exports = defineConfig({
-  transpileDependencies: true
-})
+  configureWebpack: {
+    plugins: [new MiniCssExtractPlugin()],
+  }
+});
