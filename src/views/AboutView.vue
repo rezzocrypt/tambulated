@@ -1,0 +1,3 @@
+<template>
+    Empty Page
+</template>>

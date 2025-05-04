@@ -26,6 +26,9 @@ const {DefinePlugin} = require('webpack');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 module.exports = defineConfig({
+  devServer: {
+    port: 8081
+  },
   chainWebpack: config => {
     config.plugin('add_flag')
         .use(DefinePlugin, [{
