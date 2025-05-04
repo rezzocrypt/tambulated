@@ -42,6 +42,7 @@
 
 <script>
 export default {
+    name: 'file-item',
     props: {
         name: { type: String, required: true },
         icon: { type: String },
