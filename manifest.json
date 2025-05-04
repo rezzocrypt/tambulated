@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Tambulated",
+  "description": "Расширение для вкладок и дел:)",
+  "version": "0.0.1",
+  "offline_enabled": true,
+  "optional_host_permissions": [ "http://*/*", "https://*/*" ],
+  "permissions": [
+    "bookmarks",
+    "tabs",
+    "history",
+    "storage",
+    "unlimitedStorage",
+    "declarativeNetRequestWithHostAccess",
+    "browsingData",
+    "scripting",
+    "search",
+    "alarms"],
+  "action": {
+    "default_title": "Rezzo Bookmark Assistant",
+    "default_popup": "dist/index.html",
+    "default_icon": "public/robot.png"
+  }
+  }

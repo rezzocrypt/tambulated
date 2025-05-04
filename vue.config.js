@@ -20,10 +20,19 @@
  *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *   SOFTWARE.
  */
+
 const { defineConfig } = require('@vue/cli-service')
+const {DefinePlugin} = require('webpack');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 module.exports = defineConfig({
+  chainWebpack: config => {
+    config.plugin('add_flag')
+        .use(DefinePlugin, [{
+            __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
+        }]);
+    // other chainWebpack changes
+  },
   configureWebpack: {
     plugins: [new MiniCssExtractPlugin()],
   }
