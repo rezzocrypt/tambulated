@@ -1,17 +1,10 @@
 import { createWebHistory, createRouter } from 'vue-router'
 
-import HomeView from '../views/HomeView.vue'
-import AboutView from '../views/AboutView.vue'
-import NotFoundView from '../views/NotFoundView.vue'
-
 const routes = [
-  { path: '/', name:"Home", component: HomeView },
-  { path: '/about', component: AboutView },
-  {
-    path: '/:catchAll(.*)',
-    name: '404',
-    component: NotFoundView
-  },
+  { path: '/', name: 'home', component: () => import('../views/HomeView.vue') },
+  { path: '/about', component: () => import('../views/AboutView.vue') },
+  //Error 404
+  { path: '/:catchAll(.*)', component: () => import('../views/NotFoundView.vue') },
 ]
 
 const router = createRouter({

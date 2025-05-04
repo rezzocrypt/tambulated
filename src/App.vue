@@ -1,7 +1,7 @@
 <template>
   <nav>
-    <RouterLink to="/">Home</RouterLink>
-    <RouterLink to="/about">About</RouterLink>
+    <router-link :to="{ name: 'home' }">Home</router-link>
+    <router-link to="/about">About</router-link>
   </nav>
-  <RouterView />
+  <router-view />
 </template>
