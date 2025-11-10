@@ -1,8 +1,4 @@
 <template>
-  <nav>
-    <router-link :to="{ name: 'home' }">Home</router-link>
-    <router-link :to="{ name: 'about' }">About</router-link>
-  </nav>
   <div class="app-body">
     <div class="sidebar">
       <div class="sidebar-time">

@@ -1,17 +1,23 @@
 <template>
   <div class="breadcrumbs" >
-    <a class="crumb" v-on:click="clickByItem({children: bookmarks})">Главная</a>
-    <a class="crumb" v-for="item in parents" :key="item.id" v-on:click="clickByItem(item)">
-      {{item.title}}
-    </a>
+    <div class="crumb-section">
+      <a class="crumb" v-on:click="clickByItem({children: bookmarks})">Главная</a>
+    </div>
+    <div class="crumb-section" v-for="item in parents" :key="item.id">
+      <a class="crumb" v-on:click="clickByItem(item)">
+        {{item.title}}
+      </a>
+    </div>
   </div>
   <div class="wrapper">
     <div v-show="bookmarks == null">
       Загрузка данных...
     </div>
     <div class="bookmark-item" v-for="bookmark in currentNode" :key="bookmark.id">
-      <a :class="Array.isArray(bookmark.children) && bookmark.children.length > 0 ? 'folder' : 'file'" v-on:click="clickByItem(bookmark)">
-        <div class="icon" :style="bookmark.icon != null ? `background: ${bookmark.icon}`:''"></div>
+      <a
+        :class="Array.isArray(bookmark.children) && bookmark.children.length > 0 ? 'folder' : 'file'" 
+        v-on:click="clickByItem(bookmark)">
+        <div class="icon"></div>
         <p class="label">{{ bookmark.title }}</p>
         <slot />
       </a>
@@ -22,7 +28,11 @@
 <script>
 import chromeAPI from '../assets/chrome-mock.js';
 export default {
-  data(){ return { bookmarks: null, currentNode: null, parents: [] } },
+  data(){ return {
+    bookmarks: null,
+    currentNode: null,
+    parents: []
+  } },
   methods: {
     async loadBookmarks(){
       const tree = await chromeAPI.bookmarks.getTree();
@@ -56,9 +66,10 @@ export default {
     await this.loadBookmarks();
     this.currentNode = this.bookmarks;
 
-    document.documentElement.style.setProperty('--background', 'url("https://getwallpapers.com/wallpaper/full/b/d/d/765230-technology-background-images-2560x1400-for-android.jpg")');
-  },
-}
+    document.documentElement.style.setProperty('--background', 'url("https://avatars.mds.yandex.net/i?id=032dfc4ad7cd452aca1b95d89434803b_l-4820594-images-thumbs&n=13")');
+
+    },
+  }
 </script>
 
 <style scoped>
@@ -68,20 +79,28 @@ export default {
     flex-wrap: wrap;
     gap: 10px;
     overflow: hidden;
+    padding-top: 20px;
   }
-  .breadcrumbs{
+  .breadcrumbs {
     width: 100%;
     border-radius: 5px;
     padding: 2px 10px;
     text-decoration: none;
     font-size: 80%;
-    background: var(--background-color);
-    opacity: 0.2;
+    flex-flow: nowrap;
+    display: flex;
+  }
+
+  .breadcrumbs a {
+    color: var(--breadcrumb-text-color) !important;
+  }
+  .breadcrumbs a:hover {
+    text-decoration: underline;
   }
   
-  .breadcrumbs .crumb:not(:first-child)::before{
+  .breadcrumbs .crumb-section:not(:first-child)::before{
     content: "/";
-    color: #999;
+    color: var(--breadcrumb-text-color) ;
     margin: 0 10px;
   }
 

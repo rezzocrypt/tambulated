@@ -3,9 +3,13 @@
     --vt-text-color: #181818;
     --vt-background: silver;
     --vt-background-color: silver;
+    --vt-breadcrumb-panel-background :rgba(0, 0, 0, 0.8);
+    --vt-breadcrumb-panel-text-color: white;
     --vt-dark-text-color: #ffffff;
     --vt-dark-background: black;
     --vt-dark-background-color: black;
+    --vt-dark-breadcrumb-panel-background: rgba(255, 255, 255, 0.8);
+    --vt-dark-breadcrumb-panel-text-color: black;
 
     --vt-bookmark-icon-size: 70px;
     --vt-bookmark-folder-icon: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAABCUlEQVR4nO2VMWrDQBBFp8gRQhoFV5a0pM0Zci/fRAK7CcJd0gXcRfKALxFIZ4OdA+gbxZ1A3nU1A/4Pfv/f7OyuCCGEEDICS3lGJQ1q+UMtSEolC3FTvpZDcnFvErhM/vbyXiRwy9p4lMBQYPUAfGVAVwAabNMVPTazX3w+vaUJDOXb3L64jtLmPT4eX+MCw+Sty+pENrOfuICHtdGpUyj6uIB1Sb0eCoAnELhCV7FeEfASq/2UwWdU7ScNfmTqMxLDuiAooPZTBldI7ScNXmL1GbmHZ/RkXRJT2YZjXGBbrh0LNAkCoYCWe/OyOk55wO5lHhX4l/jOM2h4d7JOp2HyyeUJIYTcFWcLXG7i+rfwxwAAAABJRU5ErkJggg==);
@@ -17,6 +21,8 @@
     --color-text: var(--vt-background);
     --background: var(--vt-white);
     --background-color: var(--vt-background-color);
+    --breadcrumb-background: var(--vt-breadcrumb-panel-background);
+    --breadcrumb-text-color: var(--vt-breadcrumb-panel-text-color);
   }
   
   @media (prefers-color-scheme: dark) {
@@ -24,6 +30,8 @@
       --color-text: var(--vt-dark-text-color);
       --background: var(--vt-dark-background);
       --background-color: var(--vt-dark-background-color);
+      --breadcrumb-background: var(--vt-dark-breadcrumb-panel-background);
+      --breadcrumb-text-color: var(--vt-dark-breadcrumb-panel-text-color);
     }
   }
   
@@ -52,6 +60,22 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+    .breadcrumbs {
+      background: linear-gradient(to right, 
+          rgba(255,255,255, 0) 0%), 
+          rgba(255,255,255, 0.6) 20%,
+          rgba(255,255,255, 1) 100%;
+    }
+
+  @media (prefers-color-scheme: dark) {
+    .breadcrumbs {
+      background: linear-gradient(to right, 
+          rgba(255,255,255, 1) 0%, 
+          rgba(255,255,255, 0.6) 20%,
+          rgba(255,255,255, 0) 100%);
+    }
+  }
+
   a {
     color: var(--color-text);
     background: transparent;
@@ -61,7 +85,6 @@
       rgba(0, 0, 0, 0.6) 1px 1px 2px,
       rgba(0, 0, 0, 0.6) 0 0 1em,
       rgba(0, 0, 0, 0.6) 0 0 0.2em;*/
-    filter: drop-shadow(0 0 2px #222);
     cursor: pointer;
   }
 
