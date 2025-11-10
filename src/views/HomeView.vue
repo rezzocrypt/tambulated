@@ -19,9 +19,7 @@ export default {
   data(){ return { bookmarks: [] } },
   methods: {
     async loadBookmarks(){
-      console.log(chrome)
       const tree = await chromeAPI.bookmarks.getTree();
-      console.log(tree)
       this.bookmarks = tree[0]?.children[0]?.children ?? [];
     }
   },
