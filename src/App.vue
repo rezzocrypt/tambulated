@@ -12,7 +12,7 @@
         {{ currentDate }}
       </div>
     </div>
-    <div class="papli">
+    <div class="main">
       <router-view />
     </div>
   </div>
@@ -55,9 +55,14 @@ export default{
     margin:10px;
   }
   .sidebar{
-    width: 200px;
+    width: 250px;
+    filter: drop-shadow(0 0 2px #222);
   }
   .sidebar-time{
     font-size: 300%;
   }
-</style>>
+  .main{
+    min-width: 600px;
+    width: 100%;
+  }
+</style>

@@ -37,4 +37,7 @@ const chromeMock = {
   }
 };
 // Экспортируем mock или реальный chrome API
-export default typeof chrome !== 'undefined' && chrome.bookmarks ? chrome : chromeMock;
+var resultObject = typeof chrome !== 'undefined' ? chrome : chromeMock;
+resultObject.bookmarks = resultObject.bookmarks ? resultObject.bookmarks : chromeMock.bookmarks;
+resultObject.tabs = resultObject.tabs ? resultObject.tabs : chromeMock.tabs;
+export default resultObject;

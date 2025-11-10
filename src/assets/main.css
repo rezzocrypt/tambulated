@@ -1,11 +1,10 @@
 @import './body.css';
 
 #app {
-  width:100%;
+  width:80%;
   height: 100%;
   max-width: 100%;
   min-height: inherit;
   margin: 0 auto;
   padding: 50px 20px 0;
-  /*background: url("https://getwallpapers.com/wallpaper/full/b/d/d/765230-technology-background-images-2560x1400-for-android.jpg");*/
 }
