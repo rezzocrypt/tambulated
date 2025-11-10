@@ -24,19 +24,48 @@
 const { defineConfig } = require('@vue/cli-service')
 const {DefinePlugin} = require('webpack');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const path = require('path')
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = defineConfig({
+  // Полностью отключаем ESLint при сборке
+  lintOnSave: false,
+  transpileDependencies: true,
   devServer: {
-    port: 8081
+    port: 8081,
   },
   chainWebpack: config => {
-    config.plugin('add_flag')
-        .use(DefinePlugin, [{
-            __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
-        }]);
-    // other chainWebpack changes
+    config.plugin('add_flag').use(DefinePlugin, [{
+        __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'false'
+    }]);
+    // Оптимизация для Chrome расширения
+    config.optimization.splitChunks(false);
+    // Отключаем ESLint для файлов с chrome API
+    config.module
+      .rule('eslint')
+      .exclude
+      .add(/chrome-mock\.js$/);
   },
   configureWebpack: {
-    plugins: [new MiniCssExtractPlugin()],
+    plugins: [
+      new MiniCssExtractPlugin(),
+      new CopyWebpackPlugin({
+              patterns: [
+                {
+                  from: 'public/manifest.json',
+                  to: 'manifest.json'
+                },
+                {
+                  from: 'public/icons',
+                  to: 'icons',
+                  noErrorOnMissing: true
+                },
+                {
+                  from: 'public/options.html',
+                  to: 'options.html'
+                }
+              ]
+          })
+    ]
   }
 });

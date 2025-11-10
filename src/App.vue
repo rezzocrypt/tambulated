@@ -1,7 +1,7 @@
 <template>
   <nav>
     <router-link :to="{ name: 'home' }">Home</router-link>
-    <router-link to="/about">About</router-link>
+    <router-link :to="{ name: 'about' }">About</router-link>
   </nav>
   <div class="app-body">
     <div class="sidebar">
@@ -26,7 +26,7 @@ export default{
       currentDate: '',
       intervalRef: null
     };
-  }, 
+  },
   mounted () {
     this.intervalRef = window.setInterval(() => {
       var currentDate = new Date();
@@ -53,6 +53,9 @@ export default{
   }
   .app-body > div{
     margin:10px;
+  }
+  .sidebar{
+    width: 200px;
   }
   .sidebar-time{
     font-size: 300%;
