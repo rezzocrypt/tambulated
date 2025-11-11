@@ -1,5 +1,5 @@
 <template>
-  <div class="app-body">
+  <div class="app-body" @contextmenu.prevent="null">
     <div class="sidebar">
       <div class="sidebar-time">
         {{ currentTime }}

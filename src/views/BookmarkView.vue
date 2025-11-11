@@ -13,7 +13,7 @@
     <div v-show="bookmarks == null">
       Загрузка данных...
     </div>
-    <div class="bookmark-item" v-for="bookmark in currentNode" :key="bookmark.id">
+    <div class="bookmark-item" v-for="bookmark in currentNode" :key="bookmark.id" @contextmenu="onContextMenu($event)">
       <a
         :class="Array.isArray(bookmark.children) && bookmark.children.length > 0 ? 'folder' : 'file'" 
         v-on:click="clickByItem(bookmark)">
@@ -23,17 +23,46 @@
       </a>
     </div>
   </div>
+
+  <context-menu v-model:show="optionsComponent.show" :options="optionsComponent">
+    <context-menu-item label="Открыть" @click="alertContextMenuItemClicked('Item1')" />
+    <context-menu-separator />
+    <context-menu-item label="Переименовать" @click="alertContextMenuItemClicked('Item2')" />
+    <context-menu-item label="Изменить" @click="alertContextMenuItemClicked('Item2')" />
+    <context-menu-item label="Переместить" @click="alertContextMenuItemClicked('Item2')" />
+    <context-menu-item label="Удалить" @click="alertContextMenuItemClicked('Item2')" />
+  </context-menu>
 </template>
 
 <script>
 import chromeAPI from '../assets/chrome-mock.js';
+import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
+
 export default {
-  data(){ return {
-    bookmarks: null,
-    currentNode: null,
-    parents: []
-  } },
+  data(){
+    return {
+      bookmarks: null,
+      currentNode: null,
+      parents: [],
+
+      optionsComponent: {
+        theme: 'dark',
+        zIndex: 3,
+        show: false
+      }
+    } 
+  },
   methods: {
+        onContextMenu(e) {
+          e.preventDefault();
+          this.optionsComponent.x = e.x;
+          this.optionsComponent.y = e.y;
+          this.optionsComponent.show = true;
+        },
+        alertContextMenuItemClicked(name) {
+          alert('You clicked ' + name + ' !');
+        },
+
     async loadBookmarks(){
       const tree = await chromeAPI.bookmarks.getTree();
       this.bookmarks = tree[0]?.children[0]?.children ?? [];
@@ -78,7 +107,7 @@ export default {
     place-items: flex-start;
     flex-wrap: wrap;
     gap: 10px;
-    overflow: hidden;
+    overflow: auto;
     padding-top: 20px;
   }
   .breadcrumbs {

@@ -8,6 +8,7 @@
     "build": "vue-cli-service build && del /s /q dist\\*.map"
   },
   "dependencies": {
+    "@imengyu/vue3-context-menu": "^1.5.2",
     "core-js": "^3.8.3",
     "vue": "^3.2.13",
     "vue-router": "^4.5.1"
