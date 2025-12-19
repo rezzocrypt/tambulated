@@ -1,14 +1,5 @@
 <template>
-  <div class="breadcrumbs" >
-    <div class="crumb-section">
-      <a class="crumb" v-on:click="clickByItem({children: bookmarks})">Главная</a>
-    </div>
-    <div class="crumb-section" v-for="item in parents" :key="item.id">
-      <a class="crumb" v-on:click="clickByItem(item)">
-        {{item.title}}
-      </a>
-    </div>
-  </div>
+  <BreadCrumbs :items="parents" :root-element="bookmarks" :click-fn="clickByItem"/>
   <div class="wrapper">
     <div v-show="bookmarks == null">
       Загрузка данных...
@@ -36,14 +27,16 @@
 
 <script>
 import chromeAPI from '../assets/chrome-mock.js';
+import BreadCrumbs from '../components/BreadCrumbs.vue'
 import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
 
 export default {
+  components:{ BreadCrumbs },
   data(){
     return {
       bookmarks: null,
-      currentNode: null,
       parents: [],
+      currentNode: null,
 
       optionsComponent: {
         theme: 'dark',
@@ -110,32 +103,15 @@ export default {
     overflow: auto;
     padding-top: 20px;
   }
-  .breadcrumbs {
-    width: 100%;
-    border-radius: 5px;
-    padding: 2px 10px;
-    text-decoration: none;
-    font-size: 80%;
-    flex-flow: nowrap;
-    display: flex;
-  }
-
-  .breadcrumbs a {
-    color: var(--breadcrumb-text-color) !important;
-  }
-  .breadcrumbs a:hover {
-    text-decoration: underline;
-  }
-  
-  .breadcrumbs .crumb-section:not(:first-child)::before{
-    content: "/";
-    color: var(--breadcrumb-text-color) ;
-    margin: 0 10px;
-  }
-
   .bookmark-item {
     width: var(--vt-bookmark-icon-size);
     cursor: pointer;
+  }
+  .bookmark-item a .label{
+    filter: drop-shadow(0 0 2px #222);
+  }
+  .bookmark-item a:hover .label{
+    text-decoration: underline;
   }
   .bookmark-item .icon {
       width: 100%;
@@ -153,12 +129,6 @@ export default {
       -webkit-line-clamp: 2;
       font-size: 70%;
   }
-  .folder > .icon { background: var(--vt-bookmark-folder-icon); }
-  .file > .icon { background: var(--vt-bookmark-file-icon); }
-  a .label{
-    filter: drop-shadow(0 0 2px #222);
-  }
-  a:hover .label{
-    text-decoration: underline;
-  }
+  .bookmark-item .folder > .icon { background: var(--vt-bookmark-folder-icon); }
+  .bookmark-item .file > .icon { background: var(--vt-bookmark-file-icon); }
 </style>

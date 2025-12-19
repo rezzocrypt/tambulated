@@ -4,6 +4,9 @@
   "version": "1.0",
   "offline_enabled": true,
   "description": "Управление закладками с помощью Vue.js",
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
   "permissions": [
     "bookmarks",
     "storage"
