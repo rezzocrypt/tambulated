@@ -1,4 +1,5 @@
 <template>
+  <Backgrounder/>
   <BreadCrumbs :items="parents" :root-element="bookmarks" :click-fn="clickByItem"/>
   <div class="wrapper">
     <div v-show="bookmarks == null">
@@ -28,10 +29,11 @@
 <script>
 import chromeAPI from '../assets/chrome-mock.js';
 import BreadCrumbs from '../components/BreadCrumbs.vue'
+import Backgrounder from '../components/Backgrounder.vue';
 import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
 
 export default {
-  components:{ BreadCrumbs },
+  components:{ BreadCrumbs, Backgrounder },
   data(){
     return {
       bookmarks: null,
@@ -87,9 +89,6 @@ export default {
     chromeAPI.bookmarks.onChildrenReordered.addListener(this.loadBookmarks);
     await this.loadBookmarks();
     this.currentNode = this.bookmarks;
-
-    document.documentElement.style.setProperty('--background', 'url("https://avatars.mds.yandex.net/i?id=032dfc4ad7cd452aca1b95d89434803b_l-4820594-images-thumbs&n=13")');
-
     },
   }
 </script>
