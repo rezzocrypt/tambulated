@@ -1,12 +1,8 @@
 <template>
+  <Backgrounder />
   <div class="app-body" @contextmenu.prevent="null">
     <div class="sidebar">
-      <div class="sidebar-time">
-        {{ currentTime }}
-      </div>
-      <div class="sidebar-date">
-        {{ currentDate }}
-      </div>
+      <DateTimeBlock />
     </div>
     <div class="main">
       <router-view />
@@ -14,36 +10,12 @@
   </div>
 </template>
 
-<script>
-export default{
-  data: function(){
-    return {
-      currentTime: '',
-      currentDate: '',
-      intervalRef: null
-    };
-  },
-  mounted () {
-    this.intervalRef = window.setInterval(() => {
-      var currentDate = new Date();
-      this.currentTime = currentDate.toLocaleString('ru', { hour: '2-digit', minute: '2-digit' });
-      this.currentDate = currentDate.toLocaleString('ru', { weekday: 'long', day: '2-digit', month: 'long'});
-    });
-  },
-  beforeUnmount () {
-    if (this.intervalRef) {
-      window.clearInterval(this.intervalRef);
-      this.intervalRef = null;
-    }
-  }
-};
+<script setup>
+  import Backgrounder from './components/Common/Backgrounder.vue';
+  import DateTimeBlock from './components/Common/DateTimeBlock.vue';
 </script>
 
 <style scoped>
-  nav a{
-    color: green;
-    padding: 5px;
-  }
   .app-body {
     display: flex;
   }
@@ -53,9 +25,6 @@ export default{
   .sidebar{
     width: 250px;
     filter: drop-shadow(0 0 2px #222);
-  }
-  .sidebar-time{
-    font-size: 300%;
   }
   .main{
     min-width: 600px;

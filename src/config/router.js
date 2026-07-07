@@ -2,8 +2,11 @@ import { createWebHistory, createRouter } from 'vue-router'
 
 const routes = [
   { path: '/about.html', name:'about', component: () => import('../views/AboutView.vue') },
+  //обработка закладок
   { path: '/index.html', name: 'home', component: () => import('../views/BookmarkView.vue') },
   { path: '/folder/:catchAll(.*)', name: 'folder', component: () => import('../views/BookmarkView.vue') },
+
+  { path: '/new.html', name: 'remake', component: () => import('../views/BookmarkNewView.vue') },
   //Error 404
   { path: '/:catchAll(.*)', component: () => import('../views/NotFoundView.vue') },
 ]

@@ -1,66 +1,99 @@
 <template>
-  <Backgrounder/>
-  <BreadCrumbs :items="parents" :root-element="bookmarks" :click-fn="clickByItem"/>
+  <BreadCrumbs :items="parents" :root-element="allBookmarks" :click-fn="clickByItem"/>
   <div class="wrapper">
-    <div v-show="bookmarks == null">
+    <div v-show="currentNode == null">
       Загрузка данных...
     </div>
-    <div class="bookmark-item" v-for="bookmark in currentNode" :key="bookmark.id" @contextmenu="onContextMenu($event)">
+    <div class="bookmark-item" v-for="bookmark in currentNode" :key="bookmark.id" @contextmenu="onContextMenu($event, bookmark)">
       <a
-        :class="Array.isArray(bookmark.children) && bookmark.children.length > 0 ? 'folder' : 'file'" 
+        :class="bookmark.url == undefined ? 'folder' : getIcon(bookmark)" 
         v-on:click="clickByItem(bookmark)">
-        <div class="icon"></div>
+        <div class="icon-wrapper">
+          <div class="icon"></div>
+        </div>
         <p class="label">{{ bookmark.title }}</p>
         <slot />
       </a>
     </div>
   </div>
-
-  <context-menu v-model:show="optionsComponent.show" :options="optionsComponent">
-    <context-menu-item label="Открыть" @click="alertContextMenuItemClicked('Item1')" />
-    <context-menu-separator />
-    <context-menu-item label="Переименовать" @click="alertContextMenuItemClicked('Item2')" />
-    <context-menu-item label="Изменить" @click="alertContextMenuItemClicked('Item2')" />
-    <context-menu-item label="Переместить" @click="alertContextMenuItemClicked('Item2')" />
-    <context-menu-item label="Удалить" @click="alertContextMenuItemClicked('Item2')" />
+  <context-menu v-model:show="optionsComponent.show" :options="optionsComponent" >
+    <component :is="menuItem.component || 'ContextMenuItem'"
+      v-bind="{label: menuItem.label}"
+      v-on="{click: menuItem.action }"
+      v-for="(menuItem, index) in optionsComponent.items"  
+      :key="index"
+      v-show="menuItem.visible || true"
+    />
   </context-menu>
 </template>
 
 <script>
 import chromeAPI from '../assets/chrome-mock.js';
 import BreadCrumbs from '../components/BreadCrumbs.vue'
-import Backgrounder from '../components/Backgrounder.vue';
+
 import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
+import { ref } from 'vue';
+
+const bookmarkTree = ref(null)
+const bookmarksRoot = ref(null)
+const selectedItem = ref(null)
+
+
+async function loadBookmarks(){
+  bookmarkTree.value = await chromeAPI.bookmarks.getTree();
+  bookmarksRoot.value = bookmarkTree.value[0]?.children[0]?.children ?? [];
+  //console.log("loadBookmarks", bookmarkTree, bookmarksRoot)
+}
+
+async function removeBookmark(id){
+  chromeAPI.bookmarks.remove(id, loadBookmarks);
+}
 
 export default {
-  components:{ BreadCrumbs, Backgrounder },
+  components:{ BreadCrumbs },
   data(){
+    var currentContext = this;;
     return {
-      bookmarks: null,
       parents: [],
+      allBookmarks: null,
       currentNode: null,
-
       optionsComponent: {
         theme: 'dark',
         zIndex: 3,
-        show: false
+        show: false,
+        items: [
+          { label: 'Удалить', visible: true, action: function() {
+            removeBookmark(selectedItem.value.id);
+            currentContext.setInited();
+          }},
+        ]
       }
     } 
   },
   methods: {
-        onContextMenu(e) {
-          e.preventDefault();
-          this.optionsComponent.x = e.x;
-          this.optionsComponent.y = e.y;
-          this.optionsComponent.show = true;
-        },
-        alertContextMenuItemClicked(name) {
-          alert('You clicked ' + name + ' !');
-        },
-
-    async loadBookmarks(){
-      const tree = await chromeAPI.bookmarks.getTree();
-      this.bookmarks = tree[0]?.children[0]?.children ?? [];
+    getDomainFromUrl(url) {
+      const regex = /^(?:https?:\/\/)?(?:www\.)?([^\/?#]+)/i;
+      const match = url.match(regex);
+      return match ? match[1] : null;
+    },
+    onContextMenu(e, bookmark) {
+      e.preventDefault();
+      this.optionsComponent.x = e.x;
+      this.optionsComponent.y = e.y;
+      this.optionsComponent.show = true;
+      selectedItem.value = bookmark;
+    },
+    getIcon(bookmark){
+      //console.log(bookmark.url);
+      return this.getDomainFromUrl(bookmark.url).replaceAll('.', '_');
+      if(bookmark.url.indexOf('github.com') > 0)
+        return 'git_file';
+      return 'file';
+    },
+    setInited(){
+      //chrome.bookmarks.get
+      this.currentNode = /*this.currentNode ??*/ bookmarksRoot.value;
+      this.allBookmarks = bookmarksRoot.value;
     },
     clickByItem(bookmark){
       if(Array.isArray(bookmark.children)){
@@ -81,14 +114,18 @@ export default {
     }
   },
  async mounted() {
+    var currentContext = this;
+    var reloader = async (e, element) => {
+      await loadBookmarks();
+      currentContext.setInited();
+    };
     // Обработка событий закладок
-    chromeAPI.bookmarks.onCreated.addListener(this.loadBookmarks);
-    chromeAPI.bookmarks.onRemoved.addListener(this.loadBookmarks);
-    chromeAPI.bookmarks.onChanged.addListener(this.loadBookmarks);
-    chromeAPI.bookmarks.onMoved.addListener(this.loadBookmarks);
-    chromeAPI.bookmarks.onChildrenReordered.addListener(this.loadBookmarks);
-    await this.loadBookmarks();
-    this.currentNode = this.bookmarks;
+    reloader();
+    chromeAPI.bookmarks.onCreated.addListener(reloader);
+    chromeAPI.bookmarks.onRemoved.addListener(reloader);
+    chromeAPI.bookmarks.onChanged.addListener(reloader);
+    chromeAPI.bookmarks.onMoved.addListener(reloader);
+    chromeAPI.bookmarks.onChildrenReordered.addListener(reloader);
     },
   }
 </script>
@@ -112,6 +149,9 @@ export default {
   .bookmark-item a:hover .label{
     text-decoration: underline;
   }
+  .bookmark-item .icon-wrapper{
+    
+  }
   .bookmark-item .icon {
       width: 100%;
       height: var(--vt-bookmark-icon-size);
@@ -128,6 +168,6 @@ export default {
       -webkit-line-clamp: 2;
       font-size: 70%;
   }
-  .bookmark-item .folder > .icon { background: var(--vt-bookmark-folder-icon); }
-  .bookmark-item .file > .icon { background: var(--vt-bookmark-file-icon); }
+  .bookmark-item .folder .icon { background: var(--vt-bookmark-folder-icon); }
+  .bookmark-item .icon { background: var(--vt-bookmark-file-icon); }
 </style>
