@@ -19,7 +19,7 @@
   /* semantic color variables for this project */
   :root {
     --color-text: var(--vt-background);
-    --background: var(--vt-white);
+    --background: var(--vt-background);
     --background-color: var(--vt-background-color);
     --breadcrumb-background: var(--vt-breadcrumb-panel-background);
     --breadcrumb-text-color: var(--vt-breadcrumb-panel-text-color);

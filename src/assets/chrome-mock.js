@@ -3,7 +3,7 @@ import fakeBookmark from './fake-bookmark.js';
 // Mock для Chrome API во время разработки и сборки
 const chromeMock = {
   bookmarks: {
-    getTree: (callback) => typeof fakeBookmark !== 'undefined' ? fakeBookmark : [],
+    getTree: () => typeof fakeBookmark !== 'undefined' ? fakeBookmark : [],
     create: (bookmark, callback) => { callback({ id: Date.now().toString(), ...bookmark }); },
     update: (id, changes, callback) => { callback({ id, ...changes }); },
     remove: (id, callback) => { callback(); },

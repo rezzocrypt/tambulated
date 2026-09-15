@@ -1,5 +1,5 @@
 <template>
-  <Backgrounder />
+  <PageBackground />
   <div class="app-body" @contextmenu.prevent="null">
     <div class="sidebar">
       <DateTimeBlock />
@@ -11,7 +11,7 @@
 </template>
 
 <script setup>
-  import Backgrounder from './components/Common/Backgrounder.vue';
+  import PageBackground from './components/Common/PageBackground.vue';
   import DateTimeBlock from './components/Common/DateTimeBlock.vue';
 </script>
 

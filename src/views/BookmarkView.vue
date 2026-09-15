@@ -52,7 +52,7 @@ async function removeBookmark(id){
 export default {
   components:{ BreadCrumbs },
   data(){
-    var currentContext = this;;
+    var currentContext = this;
     return {
       parents: [],
       allBookmarks: null,
@@ -72,7 +72,7 @@ export default {
   },
   methods: {
     getDomainFromUrl(url) {
-      const regex = /^(?:https?:\/\/)?(?:www\.)?([^\/?#]+)/i;
+      const regex = /^(?:https?:\/\/)?(?:www\.)?([^/?#]+)/i;
       const match = url.match(regex);
       return match ? match[1] : null;
     },
@@ -84,11 +84,8 @@ export default {
       selectedItem.value = bookmark;
     },
     getIcon(bookmark){
-      //console.log(bookmark.url);
-      return this.getDomainFromUrl(bookmark.url).replaceAll('.', '_');
-      if(bookmark.url.indexOf('github.com') > 0)
-        return 'git_file';
-      return 'file';
+      const domain = this.getDomainFromUrl(bookmark.url);
+      return domain ? domain.replaceAll('.', '_') : 'file';
     },
     setInited(){
       //chrome.bookmarks.get
@@ -110,12 +107,12 @@ export default {
         }
       }
       else
-        chrome.tabs.create({ url: bookmark.url });
+        chromeAPI.tabs.create({ url: bookmark.url });
     }
   },
  async mounted() {
     var currentContext = this;
-    var reloader = async (e, element) => {
+    var reloader = async () => {
       await loadBookmarks();
       currentContext.setInited();
     };
