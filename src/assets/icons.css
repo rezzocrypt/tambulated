@@ -18,10 +18,6 @@
   background-image: url(./icons/platform/yandex.png) !important;
 }
 
-.bookmark-item a[class$="herominers_com"] .icon,
-.bookmark-table a[class$="herominers_com"] .icon {
-  background-image: url(./icons/platform/yandex.png) !important;
-}
 
 .bookmark-item a[class*="twitch"] .icon,
 .bookmark-table a[class*="twitch"] .icon {

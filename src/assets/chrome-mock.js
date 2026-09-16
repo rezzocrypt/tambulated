@@ -1,87 +1,101 @@
-import fakeBookmark from './fake-bookmark.js';
+import { findNode, findParent, moveNode } from '../utils/bookmarkTree.js';
 
-let tree = fakeBookmark;
+let tree = [];
 
-function findNode(nodes, id) {
-  for (const node of nodes) {
-    if (node.id === id) return node;
-    if (Array.isArray(node.children)) {
-      const found = findNode(node.children, id);
-      if (found) return found;
-    }
-  }
-  return null;
+function makeEvent() {
+  const listeners = new Set();
+  return {
+    addListener: (fn) => listeners.add(fn),
+    removeListener: (fn) => listeners.delete(fn),
+    _emit: (...args) => listeners.forEach((fn) => fn(...args)),
+  };
 }
 
-function findParent(nodes, parentId) {
-  for (const node of nodes) {
-    if (node.id === parentId) return node;
-    if (Array.isArray(node.children)) {
-      const found = findParent(node.children, parentId);
-      if (found) return found;
-    }
-  }
-  return null;
-}
+const onCreated = makeEvent();
+const onRemoved = makeEvent();
+const onChanged = makeEvent();
+const onMoved = makeEvent();
+const onChildrenReordered = makeEvent();
 
-function moveNode(id, destination) {
-  const node = findNode(tree, id);
-  if (!node) return null;
-  const oldParent = findParent(tree, node.parentId);
-  if (oldParent && Array.isArray(oldParent.children)) {
-    const oldIndex = oldParent.children.indexOf(node);
-    if (oldIndex >= 0) oldParent.children.splice(oldIndex, 1);
-  }
-  const dest = findParent(tree, destination.parentId);
-  if (dest) {
-    if (!Array.isArray(dest.children)) dest.children = [];
-    const index = destination.index == null || destination.index < 0 ? dest.children.length : destination.index;
-    dest.children.splice(index, 0, node);
-    node.parentId = destination.parentId;
-    node.index = index;
-  }
-  return node;
-}
-
-// Mock для Chrome API во время разработки и сборки
 const chromeMock = {
   bookmarks: {
     getTree: () => tree,
-    create: (bookmark, callback) => { callback({ id: Date.now().toString(), ...bookmark }); },
-    update: (id, changes, callback) => { callback({ id, ...changes }); },
-    move: (id, destination, callback) => { const node = moveNode(id, destination); if (callback) callback(node); },
-    remove: (id, callback) => { callback(); },
-    
-    // Events
-    onCreated: { addListener: () => {}, removeListener: () => {} },
-    onRemoved: { addListener: () => {}, removeListener: () => {} },
-    onChanged: { addListener: () => {}, removeListener: () => {} },
-    onMoved: { addListener: () => {}, removeListener: () => {} },
-    onChildrenReordered: { addListener: () => {}, removeListener: () => {} }
+
+    create(bookmark, callback) {
+      const parent = findNode(tree, bookmark.parentId) || tree[0];
+      const id = Date.now().toString();
+      const node = { id, index: (parent.children ??= []).length, ...bookmark };
+      parent.children.push(node);
+      onCreated._emit(null, node);
+      if (callback) callback(node);
+      return node;
+    },
+
+    update(id, changes, callback) {
+      const node = findNode(tree, id);
+      if (node) Object.assign(node, changes);
+      if (callback) callback(node);
+      return node;
+    },
+
+    move(id, destination, callback) {
+      const node = moveNode(tree, id, destination);
+      onMoved._emit(null, { ...destination, node });
+      if (callback) callback(node);
+      return node;
+    },
+
+    remove(id, callback) {
+      const node = findNode(tree, id);
+      if (!node) { if (callback) callback(); return; }
+      const parent = findParent(tree, node.parentId);
+      const index = parent?.children?.indexOf(node) ?? -1;
+      if (index >= 0) parent.children.splice(index, 1);
+      onRemoved._emit(null, { bookmarkId: id, parent, node });
+      if (callback) callback();
+    },
+
+    onCreated,
+    onRemoved,
+    onChanged,
+    onMoved,
+    onChildrenReordered,
   },
-  
+
   runtime: {
     lastError: null,
-    onInstalled: { addListener: () => {} }
+    onInstalled: { addListener: () => {} },
   },
-  
+
   tabs: {
     create: (properties) => {
-      if (properties.url) {
-        window.open(properties.url, '_blank');
-      }
-    }
+      if (properties.url) window.open(properties.url, '_blank');
+    },
   },
-  
+
   storage: {
     local: {
       get: (keys, callback) => { callback({}); },
-      set: (items, callback) => { callback && callback(); }
-    }
-  }
+      set: (items, callback) => { callback && callback(); },
+    },
+  },
 };
-// Экспортируем mock или реальный chrome API
-var resultObject = typeof chrome !== 'undefined' ? chrome : chromeMock;
-resultObject.bookmarks = resultObject.bookmarks ? resultObject.bookmarks : chromeMock.bookmarks;
-resultObject.tabs = resultObject.tabs ? resultObject.tabs : chromeMock.tabs;
-export default resultObject;
+
+async function initMock() {
+  if (import.meta.env.DEV) {
+    const mod = await import('../assets/fake-bookmark.js');
+    tree = mod.default;
+  } else {
+    tree = [{ children: [] }];
+  }
+}
+
+const nativeChrome = typeof chrome !== 'undefined' ? chrome : null;
+const api = nativeChrome ?? chromeMock;
+api.bookmarks = api.bookmarks ?? chromeMock.bookmarks;
+api.tabs = api.tabs ?? chromeMock.tabs;
+api.storage = api.storage ?? chromeMock.storage;
+api.runtime = api.runtime ?? chromeMock.runtime;
+
+export const ready = initMock();
+export default api;

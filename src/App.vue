@@ -1,10 +1,10 @@
 <template>
   <PageBackground />
-  <div class="app-body" @contextmenu.prevent="null">
+  <div class="app-body">
     <div class="sidebar">
       <DateTimeBlock />
     </div>
-    <div class="main">
+    <div class="main" @contextmenu.prevent>
       <router-view />
     </div>
   </div>

@@ -1,8 +1,8 @@
 <template>
   <div class="toolbar">
     <BreadCrumbs
-      :items="parents"
-      :root-element="allBookmarks"
+      :items="bookmarks.parents.value"
+      :root-element="bookmarks.allBookmarks.value"
       :click-fn="clickByItem"
       :drag-enabled="dragEnabled"
       :drop-root-fn="dropToRoot"
@@ -18,12 +18,12 @@
       </label>
     </div>
   </div>
-  <div v-show="currentNode == null">
+  <div v-show="bookmarks.currentNode.value == null">
     Загрузка данных...
   </div>
   <BookmarkGrid
-    v-if="viewMode === 'grid' && currentNode != null"
-    :items="currentNode"
+    v-if="viewMode === 'grid' && bookmarks.currentNode.value != null"
+    :items="bookmarks.currentNode.value"
     :click-fn="clickByItem"
     :context-fn="onContextMenu"
     :icon-fn="getIcon"
@@ -33,8 +33,8 @@
     :drop-root-fn="dropToRoot"
   />
   <BookmarkTable
-    v-else-if="viewMode === 'table' && currentNode != null"
-    :items="currentNode"
+    v-else-if="viewMode === 'table' && bookmarks.currentNode.value != null"
+    :items="bookmarks.currentNode.value"
     :click-fn="clickByItem"
     :context-fn="onContextMenu"
     :icon-fn="getIcon"
@@ -43,177 +43,131 @@
     :drop-fn="dropOn"
     :drop-root-fn="dropToRoot"
   />
-  <context-menu v-model:show="optionsComponent.show" :options="optionsComponent" >
-    <component :is="menuItem.component || 'ContextMenuItem'"
-      v-bind="{label: menuItem.label}"
-      v-on="{click: menuItem.action }"
-      v-for="(menuItem, index) in optionsComponent.items"  
+  <context-menu v-model:show="ctxMenu.show" :options="ctxMenu">
+    <component
+      :is="menuItem.component || 'ContextMenuItem'"
+      v-bind="{ label: menuItem.label }"
+      v-on="{ click: menuItem.action }"
+      v-for="(menuItem, index) in ctxMenu.items"
       :key="index"
       v-show="menuItem.visible || true"
     />
   </context-menu>
 </template>
 
-<script>
-import chromeAPI from '../assets/chrome-mock.js';
-import BreadCrumbs from '../components/BreadCrumbs.vue'
-import BookmarkGrid from '../components/Bookmark/BookmarkGrid.vue'
-import BookmarkTable from '../components/Bookmark/BookmarkTable.vue'
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ready } from '@/assets/chrome-mock.js';
+import chromeAPI from '@/assets/chrome-mock.js';
+import { useBookmarks } from '@/composables/useBookmarks.js';
 
-import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
-import { ref } from 'vue';
+import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css';
+import BreadCrumbs from '@/components/BreadCrumbs.vue';
+import BookmarkGrid from '@/components/Bookmark/BookmarkGrid.vue';
+import BookmarkTable from '@/components/Bookmark/BookmarkTable.vue';
 
-const bookmarkTree = ref(null)
-const bookmarksRoot = ref(null)
-const selectedItem = ref(null)
-const rootNode = ref(null)
+const bookmarks = useBookmarks();
 
-const VIEW_MODE_KEY = 'viewMode'
+const VIEW_MODE_KEY = 'viewMode';
+const viewMode = ref(localStorage.getItem(VIEW_MODE_KEY) === 'table' ? 'table' : 'grid');
+const dragEnabled = ref(false);
+const dragItem = ref(null);
 
+const ctxMenu = ref({
+  theme: 'dark',
+  zIndex: 3,
+  show: false,
+  x: 0,
+  y: 0,
+  items: [],
+});
 
-async function loadBookmarks(){
-  bookmarkTree.value = await chromeAPI.bookmarks.getTree();
-  bookmarksRoot.value = bookmarkTree.value[0]?.children[0]?.children ?? [];
-  rootNode.value = bookmarkTree.value[0]?.children[0] ?? null;
+function getDomainFromUrl(url) {
+  const regex = /^(?:https?:\/\/)?(?:www\.)?([^/?#]+)/i;
+  const match = url.match(regex);
+  return match ? match[1] : null;
 }
 
-async function removeBookmark(id){
-  chromeAPI.bookmarks.remove(id, loadBookmarks);
+function getIcon(bookmark) {
+  const domain = getDomainFromUrl(bookmark.url);
+  return domain ? domain.replaceAll('.', '_') : 'file';
 }
 
-function findNodeById(nodes, id){
-  if (id == null || !Array.isArray(nodes)) return null;
-  for (const node of nodes) {
-    if (node.id === id) return node;
-    if (Array.isArray(node.children)) {
-      const found = findNodeById(node.children, id);
-      if (found) return found;
-    }
+function setViewMode(mode) {
+  viewMode.value = mode;
+  localStorage.setItem(VIEW_MODE_KEY, mode);
+}
+
+function onContextMenu(e, bookmark) {
+  e.preventDefault();
+  ctxMenu.value.x = e.x;
+  ctxMenu.value.y = e.y;
+  ctxMenu.value.show = true;
+  ctxMenu.value.items = [
+    {
+      label: 'Удалить',
+      visible: true,
+      action: () => {
+        bookmarks.removeBookmark(bookmark.id);
+      },
+    },
+  ];
+  bookmarks.selectedItem.value = bookmark;
+}
+
+function clickByItem(bookmark) {
+  if (Array.isArray(bookmark.children)) {
+    bookmarks.navigateInto(bookmark);
+  } else {
+    chromeAPI.tabs.create({ url: bookmark.url });
   }
-  return null;
 }
 
-export default {
-  components:{ BreadCrumbs, BookmarkGrid, BookmarkTable },
-  data(){
-    var currentContext = this;
-    return {
-      parents: [],
-      allBookmarks: null,
-      currentNode: null,
-      dragEnabled: false,
-      dragItem: null,
-      currentParentId: null,
-      viewMode: localStorage.getItem(VIEW_MODE_KEY) === 'table' ? 'table' : 'grid',
-      optionsComponent: {
-        theme: 'dark',
-        zIndex: 3,
-        show: false,
-        items: [
-          { label: 'Удалить', visible: true, action: function() {
-            removeBookmark(selectedItem.value.id);
-            currentContext.setInited();
-          }},
-        ]
-      }
-    } 
-  },
-  methods: {
-    getDomainFromUrl(url) {
-      const regex = /^(?:https?:\/\/)?(?:www\.)?([^/?#]+)/i;
-      const match = url.match(regex);
-      return match ? match[1] : null;
-    },
-    onContextMenu(e, bookmark) {
-      e.preventDefault();
-      this.optionsComponent.x = e.x;
-      this.optionsComponent.y = e.y;
-      this.optionsComponent.show = true;
-      selectedItem.value = bookmark;
-    },
-    getIcon(bookmark){
-      const domain = this.getDomainFromUrl(bookmark.url);
-      return domain ? domain.replaceAll('.', '_') : 'file';
-    },
-    setViewMode(mode){
-      this.viewMode = mode;
-      localStorage.setItem(VIEW_MODE_KEY, mode);
-    },
-    setInited(){
-      //chrome.bookmarks.get
-      const rootId = rootNode.value?.id ?? null;
-      const pid = this.currentParentId ?? rootId;
-      const fresh = findNodeById(bookmarkTree.value, pid);
-      if (fresh && Array.isArray(fresh.children)) {
-        this.currentNode = fresh.children;
-        this.allBookmarks = fresh.children;
-        this.currentParentId = pid;
-      } else {
-        this.currentNode = bookmarksRoot.value;
-        this.allBookmarks = bookmarksRoot.value;
-        this.currentParentId = rootId;
-      }
-    },
-    clickByItem(bookmark){
-      if(Array.isArray(bookmark.children)){
-        this.currentNode = bookmark.children;
-        this.currentNode.parentElement = bookmark;
-        this.currentParentId = bookmark.id ?? rootNode.value?.id ?? null;
-        if (bookmark.id == null)
-          this.parents = [];
-        else{
-          var elementIndex = this.parents.indexOf(bookmark);
-          if(elementIndex >= 0)
-            this.parents.splice(elementIndex + 1);
-          else 
-            this.parents.push(bookmark);
-        }
-      }
-      else
-        chromeAPI.tabs.create({ url: bookmark.url });
-    },
-    dragStart(bookmark){
-      this.dragItem = bookmark;
-    },
-    dropOn(target){
-      const item = this.dragItem;
-      this.dragItem = null;
-      if (!item || item.id === target.id) return;
-      if (Array.isArray(target.children)) {
-        this.moveBookmark(item.id, { parentId: target.id, index: (target.children || []).length });
-        return;
-      }
-      this.moveBookmark(item.id, { parentId: this.currentParentId, index: this.currentNode ? this.currentNode.indexOf(target) : 0 });
-    },
-    dropToRoot(){
-      const item = this.dragItem;
-      this.dragItem = null;
-      if (!item) return;
-      this.moveBookmark(item.id, { parentId: rootNode.value?.id ?? null, index: rootNode.value?.children?.length ?? 0 });
-    },
-    moveBookmark(id, destination){
-      if (id == null || destination.parentId == null) return;
-      chromeAPI.bookmarks.move(id, destination, () => this.setInited());
-    },
-    reload(){
-      var currentContext = this;
-      return (async () => {
-        await loadBookmarks();
-        currentContext.setInited();
-      })();
-    },
-  },
- async mounted() {
-    this.reload();
-    const reloader = () => this.reload();
-    // Обработка событий закладок
-    chromeAPI.bookmarks.onCreated.addListener(reloader);
-    chromeAPI.bookmarks.onRemoved.addListener(reloader);
-    chromeAPI.bookmarks.onChanged.addListener(reloader);
-    chromeAPI.bookmarks.onMoved.addListener(reloader);
-    chromeAPI.bookmarks.onChildrenReordered.addListener(reloader);
-    },
+function dragStart(bookmark) {
+  dragItem.value = bookmark;
+}
+
+function dropOn(target) {
+  const item = dragItem.value;
+  dragItem.value = null;
+  if (!item || item.id === target.id) return;
+  if (Array.isArray(target.children)) {
+    bookmarks.moveBookmark(item.id, { parentId: target.id, index: (target.children || []).length });
+    return;
   }
+  bookmarks.moveBookmark(item.id, {
+    parentId: bookmarks.currentParentId.value,
+    index: bookmarks.currentNode.value ? bookmarks.currentNode.value.indexOf(target) : 0,
+  });
+}
+
+function dropToRoot() {
+  const item = dragItem.value;
+  dragItem.value = null;
+  if (!item) return;
+  const root = bookmarks.rootNode.value;
+  bookmarks.moveBookmark(item.id, { parentId: root?.id ?? null, index: root?.children?.length ?? 0 });
+}
+
+const reloader = () => bookmarks.reload();
+
+onMounted(async () => {
+  await ready;
+  await bookmarks.reload();
+  chromeAPI.bookmarks.onCreated.addListener(reloader);
+  chromeAPI.bookmarks.onRemoved.addListener(reloader);
+  chromeAPI.bookmarks.onChanged.addListener(reloader);
+  chromeAPI.bookmarks.onMoved.addListener(reloader);
+  chromeAPI.bookmarks.onChildrenReordered.addListener(reloader);
+});
+
+onBeforeUnmount(() => {
+  chromeAPI.bookmarks.onCreated.removeListener(reloader);
+  chromeAPI.bookmarks.onRemoved.removeListener(reloader);
+  chromeAPI.bookmarks.onChanged.removeListener(reloader);
+  chromeAPI.bookmarks.onMoved.removeListener(reloader);
+  chromeAPI.bookmarks.onChildrenReordered.removeListener(reloader);
+});
 </script>
 
 <style scoped>

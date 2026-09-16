@@ -1,3 +1,4 @@
+<template><span /></template>
 <script setup>
     import { onMounted } from 'vue'
     function updateBg(url) {

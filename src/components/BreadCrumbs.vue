@@ -73,3 +73,21 @@ export default {
     border-radius: 4px;
   }
 </style>
+
+<style>
+  .breadcrumbs {
+    background: linear-gradient(to right,
+      rgba(255,255,255, 0) 0%,
+      rgba(255,255,255, 0.6) 20%,
+      rgba(255,255,255, 1) 100%);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .breadcrumbs {
+      background: linear-gradient(to right,
+        rgba(255,255,255, 1) 0%,
+        rgba(255,255,255, 0.6) 20%,
+        rgba(255,255,255, 0) 100%);
+    }
+  }
+</style>

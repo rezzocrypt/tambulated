@@ -16,11 +16,13 @@ export default{
     };
   },
   mounted () {
-    this.intervalRef = window.setInterval(() => {
+    var update = () => {
       var currentDate = new Date();
       this.currentTime = currentDate.toLocaleString('ru', { hour: '2-digit', minute: '2-digit' });
       this.currentDate = currentDate.toLocaleString('ru', { weekday: 'long', day: '2-digit', month: 'long'});
-    });
+    };
+    update();
+    this.intervalRef = window.setInterval(update, 1000);
   },
   beforeUnmount () {
     if (this.intervalRef) {
