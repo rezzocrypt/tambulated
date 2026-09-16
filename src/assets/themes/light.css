@@ -47,6 +47,9 @@
 
   --background: #eef1f8;
   --background-color: #eef1f8;
+
+  --popup-bg: rgba(255, 255, 255, 0.96);
+  --popup-hover: rgba(27, 37, 64, 0.08);
 }
 
 :root[data-theme="light"] body::before {

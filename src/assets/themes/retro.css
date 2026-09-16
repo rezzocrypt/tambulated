@@ -26,6 +26,9 @@
 
   --background: #171149;
   --background-color: #171149;
+
+  --popup-bg: rgba(46, 38, 112, 0.98);
+  --popup-hover: rgba(255, 255, 255, 0.12);
 }
 
 :root[data-theme="retro"] body::before {

@@ -90,6 +90,8 @@ export default {
     gap: 16px;
     overflow-y: auto;
     padding: 20px 4px 8px;
+    flex: 1;
+    min-height: 0;
   }
   .bookmark-item {
     width: var(--vt-bookmark-icon-size);

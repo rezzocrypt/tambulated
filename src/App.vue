@@ -20,8 +20,10 @@
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 20px;
+    flex: 1;
+    min-height: 0;
   }
   .sidebar {
     width: 220px;
@@ -30,5 +32,8 @@
   .main {
     flex: 1;
     min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 </style>

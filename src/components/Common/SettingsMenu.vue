@@ -130,11 +130,9 @@ onBeforeUnmount(() => {
     z-index: 40;
     width: 240px;
     padding: 14px;
-    background: var(--glass-bg-strong);
+    background: var(--popup-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     box-shadow: var(--shadow);
   }
   .settings-head {
@@ -176,11 +174,11 @@ onBeforeUnmount(() => {
     transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
   .theme-option:hover {
-    background: var(--glass-hover);
+    background: var(--popup-hover);
     color: var(--text-primary);
   }
   .theme-option.active {
-    background: var(--glass-hover);
+    background: var(--popup-hover);
     color: var(--text-primary);
     border-color: var(--accent);
   }

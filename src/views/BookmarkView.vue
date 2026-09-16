@@ -1,4 +1,5 @@
 <template>
+  <div class="bookmark-view">
   <div class="toolbar">
     <BreadCrumbs
       :items="bookmarks.parents.value"
@@ -55,6 +56,7 @@
       v-show="menuItem.visible || true"
     />
   </context-menu>
+  </div>
 </template>
 
 <script setup>
@@ -174,6 +176,12 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+  .bookmark-view {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
   .toolbar {
     position: sticky;
     top: 16px;

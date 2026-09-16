@@ -99,6 +99,8 @@ export default {
   .table-wrapper {
     overflow: auto;
     padding-top: 20px;
+    flex: 1;
+    min-height: 0;
   }
   .bookmark-table {
     width: 100%;

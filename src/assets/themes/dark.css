@@ -24,4 +24,7 @@
 
   --background: #0a0c12;
   --background-color: #0a0c12;
+
+  --popup-bg: rgba(22, 26, 42, 0.96);
+  --popup-hover: rgba(255, 255, 255, 0.1);
 }
