@@ -1,27 +1,34 @@
-.bookmark-item a[class$="github_com"] .icon {
+.bookmark-item a[class$="github_com"] .icon,
+.bookmark-table a[class$="github_com"] .icon {
   background-image: url(./icons/platform/github.png) !important;
 }
 
-.bookmark-item a[class$="vk_com"] .icon {
+.bookmark-item a[class$="vk_com"] .icon,
+.bookmark-table a[class$="vk_com"] .icon {
   background-image: url(./icons/platform/vk.png) !important;
 }
 
-.bookmark-item a[class$="youtube_com"] .icon {
+.bookmark-item a[class$="youtube_com"] .icon,
+.bookmark-table a[class$="youtube_com"] .icon {
   background-image: url(./icons/platform/youtube.png) !important;
 }
 
-.bookmark-item a[class$="yandex_ru"] .icon {
+.bookmark-item a[class$="yandex_ru"] .icon,
+.bookmark-table a[class$="yandex_ru"] .icon {
   background-image: url(./icons/platform/yandex.png) !important;
 }
 
-.bookmark-item a[class$="herominers_com"] .icon {
+.bookmark-item a[class$="herominers_com"] .icon,
+.bookmark-table a[class$="herominers_com"] .icon {
   background-image: url(./icons/platform/yandex.png) !important;
 }
 
-.bookmark-item a[class*="twitch"] .icon {
+.bookmark-item a[class*="twitch"] .icon,
+.bookmark-table a[class*="twitch"] .icon {
   background-image: url(./icons/platform/twitch.png) !important;
 }
 
-.bookmark-item a[class*="aliexpress"] .icon {
+.bookmark-item a[class*="aliexpress"] .icon,
+.bookmark-table a[class*="aliexpress"] .icon {
   background-image: url(./icons/platform/aliexpress.png) !important;
 }
