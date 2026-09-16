@@ -1,33 +1,34 @@
 <template>
   <PageBackground />
-  <div class="app-body">
-    <div class="sidebar">
+  <div class="dashboard">
+    <aside class="sidebar">
       <DateTimeBlock />
-    </div>
-    <div class="main" @contextmenu.prevent>
+    </aside>
+    <main class="main" @contextmenu.prevent>
       <router-view />
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup>
-  import PageBackground from './components/Common/PageBackground.vue';
-  import DateTimeBlock from './components/Common/DateTimeBlock.vue';
+  import PageBackground from '@/components/Common/PageBackground.vue';
+  import DateTimeBlock from '@/components/Common/DateTimeBlock.vue';
 </script>
 
 <style scoped>
-  .app-body {
+  .dashboard {
+    position: relative;
+    z-index: 1;
     display: flex;
+    align-items: flex-start;
+    gap: 20px;
   }
-  .app-body > div{
-    margin:10px;
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
   }
-  .sidebar{
-    width: 250px;
-    filter: drop-shadow(0 0 2px #222);
-  }
-  .main{
-    min-width: 600px;
-    width: 100%;
+  .main {
+    flex: 1;
+    min-width: 0;
   }
 </style>

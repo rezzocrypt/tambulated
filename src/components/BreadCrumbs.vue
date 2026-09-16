@@ -9,7 +9,7 @@
     </div>
     <div class="crumb-section" v-for="item in items" :key="item.id">
       <a class="crumb" v-on:click="clickFn(item)">
-        {{item.title}}
+        {{ item.title }}
       </a>
     </div>
   </div>
@@ -19,9 +19,9 @@
 export default {
   name: 'BreadCrumbs',
   props: {
-    items: { type: Array, default:  () => [] },
-    rootElement: { type: Array, default:  () => [] },
-    clickFn: {type: Function, default: null},
+    items: { type: Array, default: () => [] },
+    rootElement: { type: Array, default: () => [] },
+    clickFn: { type: Function, default: null },
     dragEnabled: { type: Boolean, default: false },
     dropRootFn: { type: Function, default: null },
   },
@@ -40,54 +40,48 @@ export default {
       this.hoveredCrumb = false;
       if (this.dropRootFn) this.dropRootFn();
     },
-  }
-}
+  },
+};
 </script>
 
 <style scoped>
   .breadcrumbs {
-    border-radius: 5px;
-    padding: 2px 10px;
-    text-decoration: none;
-    font-size: 80%;
-    flex-flow: nowrap;
     display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    min-width: 0;
   }
-
-  .breadcrumbs a {
-    color: var(--breadcrumb-text-color) !important;
+  .crumb-section {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
   }
-  .breadcrumbs a:hover {
-    text-decoration: underline;
+  .crumb-section:not(:first-child)::before {
+    content: "›";
+    margin: 0 4px 0 8px;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--text-secondary);
+    opacity: 0.5;
   }
-
-  .breadcrumbs .crumb-section:not(:first-child)::before{
-    content: "/";
-    color: var(--breadcrumb-text-color) ;
-    margin: 0 10px;
+  .crumb {
+    padding: 4px 8px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.15s ease, background-color 0.15s ease;
   }
-
-  .breadcrumbs .crumb-section.hovered .crumb {
-    outline: 2px dashed rgba(255, 255, 255, 0.7);
+  .crumb:hover {
+    color: var(--text-primary);
+    background: var(--glass-hover);
+  }
+  .crumb-section.hovered .crumb {
+    outline: 2px dashed var(--accent);
     outline-offset: 2px;
-    border-radius: 4px;
-  }
-</style>
-
-<style>
-  .breadcrumbs {
-    background: linear-gradient(to right,
-      rgba(255,255,255, 0) 0%,
-      rgba(255,255,255, 0.6) 20%,
-      rgba(255,255,255, 1) 100%);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .breadcrumbs {
-      background: linear-gradient(to right,
-        rgba(255,255,255, 1) 0%,
-        rgba(255,255,255, 0.6) 20%,
-        rgba(255,255,255, 0) 100%);
-    }
+    background: var(--glass-hover);
   }
 </style>

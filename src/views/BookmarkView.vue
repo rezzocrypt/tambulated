@@ -16,10 +16,12 @@
         <input type="checkbox" v-model="dragEnabled" />
         Перетаскивание
       </label>
+      <SettingsMenu />
     </div>
   </div>
-  <div v-show="bookmarks.currentNode.value == null">
-    Загрузка данных...
+  <div v-show="bookmarks.currentNode.value == null" class="loading">
+    <div class="spinner"></div>
+    <span>Загрузка закладок…</span>
   </div>
   <BookmarkGrid
     v-if="viewMode === 'grid' && bookmarks.currentNode.value != null"
@@ -65,6 +67,7 @@ import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css';
 import BreadCrumbs from '@/components/BreadCrumbs.vue';
 import BookmarkGrid from '@/components/Bookmark/BookmarkGrid.vue';
 import BookmarkTable from '@/components/Bookmark/BookmarkTable.vue';
+import SettingsMenu from '@/components/Common/SettingsMenu.vue';
 
 const bookmarks = useBookmarks();
 
@@ -172,52 +175,125 @@ onBeforeUnmount(() => {
 
 <style scoped>
   .toolbar {
+    position: sticky;
+    top: 16px;
+    z-index: 10;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 12px;
+    padding: 8px 10px 8px 16px;
+    background: var(--glass-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow);
   }
   :deep(.breadcrumbs) {
-    width: auto;
     flex: 1;
+    min-width: 0;
   }
   .toolbar-controls {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     margin-left: auto;
     flex-shrink: 0;
   }
+
+  /* segmented control */
   .view-toggle {
     display: flex;
-    gap: 6px;
+    gap: 4px;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.28);
+    border-radius: 999px;
   }
   .view-toggle button {
     appearance: none;
-    background: rgba(128, 128, 128, 0.25);
-    color: inherit;
-    border: 1px solid rgba(128, 128, 128, 0.5);
-    border-radius: 6px;
-    padding: 4px 12px;
-    font-size: 85%;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 18px;
+    border-radius: 999px;
     cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   }
-  .view-toggle button:hover {
-    background: rgba(128, 128, 128, 0.4);
+  .view-toggle button:hover:not(.active) {
+    color: var(--text-primary);
   }
   .view-toggle button.active {
-    background: rgba(128, 128, 128, 0.6);
-    border-color: rgba(255, 255, 255, 0.6);
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(109, 92, 255, 0.45);
   }
+
+  /* drag & drop switch */
   .dnd-toggle {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 85%;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
     cursor: pointer;
     user-select: none;
+    white-space: nowrap;
   }
   .dnd-toggle input[type="checkbox"] {
-    accent-color: #8cf;
+    appearance: none;
+    position: relative;
+    width: 36px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    flex-shrink: 0;
+  }
+  .dnd-toggle input[type="checkbox"]::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s ease;
+  }
+  .dnd-toggle input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: transparent;
+  }
+  .dnd-toggle input[type="checkbox"]:checked::before {
+    transform: translateX(16px);
+  }
+
+  /* loading state */
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 48px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 </style>

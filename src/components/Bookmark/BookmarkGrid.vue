@@ -87,47 +87,72 @@ export default {
     display: flex;
     place-items: flex-start;
     flex-wrap: wrap;
-    gap: 10px;
-    overflow: auto;
-    padding-top: 20px;
+    gap: 16px;
+    overflow-y: auto;
+    padding: 20px 4px 8px;
   }
   .bookmark-item {
     width: var(--vt-bookmark-icon-size);
     cursor: pointer;
   }
+  .bookmark-item a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
   .bookmark-item.drag-enabled {
     cursor: grab;
     user-select: none;
   }
-  .bookmark-item.hovered {
-    outline: 2px dashed rgba(255, 255, 255, 0.7);
-    outline-offset: 2px;
-    border-radius: 6px;
-  }
-  .bookmark-item a .label{
-    filter: drop-shadow(0 0 2px #222);
-  }
-  .bookmark-item a:hover .label{
-    text-decoration: underline;
-  }
-  .bookmark-item .icon-wrapper{
-    
+  .bookmark-item .icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--vt-bookmark-icon-size);
+    height: var(--vt-bookmark-icon-size);
+    padding: 12px;
+    background: var(--glass-bg-strong);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-sm);
+    transition:
+      transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
   }
   .bookmark-item .icon {
-      width: 100%;
-      height: var(--vt-bookmark-icon-size);
-      background-size: cover !important;
-      background-repeat: no-repeat !important;
+    width: 100%;
+    height: 100%;
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+  }
+  .bookmark-item a:hover .icon-wrapper {
+    transform: translateY(-4px);
+    background: var(--glass-hover);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow);
   }
   .bookmark-item .label {
-      text-align: center;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      word-wrap: break-word;
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-      font-size: 70%;
+    width: 100%;
+    text-align: center;
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: var(--text-primary);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .bookmark-item.hovered .icon-wrapper {
+    outline: 2px dashed var(--accent);
+    outline-offset: 3px;
   }
   .bookmark-item .folder .icon { background: var(--vt-bookmark-folder-icon); }
   .bookmark-item .icon { background: var(--vt-bookmark-file-icon); }

@@ -1,0 +1,98 @@
+/* 8-bit retro theme */
+:root[data-theme="retro"] {
+  --font-ui: 'Press Start 2P', ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
+
+  --text-primary: #f4f6ff;
+  --text-secondary: #b9c0f5;
+
+  --glass-bg: rgba(43, 35, 104, 0.95);
+  --glass-bg-strong: rgba(63, 52, 138, 0.96);
+  --glass-hover: rgba(104, 88, 224, 0.92);
+
+  --border: rgba(255, 210, 63, 0.4);
+  --border-strong: #ffd23f;
+
+  --accent: #ff3d6e;
+  --accent-2: #ffd23f;
+  --danger: #ff3d6e;
+  --ok: #3dfc8a;
+
+  --shadow-sm: 3px 3px 0 #131034;
+  --shadow: 4px 4px 0 #131034;
+
+  --radius-sm: 0px;
+  --radius: 0px;
+  --radius-lg: 0px;
+
+  --background: #171149;
+  --background-color: #171149;
+}
+
+:root[data-theme="retro"] body::before {
+  background:
+    radial-gradient(1px 1px at 60px 40px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 140px 130px, #ffd23f, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 220px 70px, #3dfc8a, rgba(0, 0, 0, 0)),
+    radial-gradient(2px 2px at 40px 200px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 300px 180px, #ff3d6e, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 120px 260px, #ffffff, rgba(0, 0, 0, 0)),
+    radial-gradient(1px 1px at 260px 300px, #ffd23f, rgba(0, 0, 0, 0)),
+    rgba(9, 6, 36, 0.78);
+}
+
+:root[data-theme="retro"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.22) 2px,
+    rgba(0, 0, 0, 0.22) 4px
+  );
+}
+
+:root[data-theme="retro"] img,
+:root[data-theme="retro"] svg {
+  image-rendering: pixelated;
+}
+
+:root[data-theme="retro"] body {
+  letter-spacing: 0.02em;
+}
+
+/* component tweaks (scoped rules would win without !important) */
+:root[data-theme="retro"] .toolbar,
+:root[data-theme="retro"] .view-toggle,
+:root[data-theme="retro"] .view-toggle button,
+:root[data-theme="retro"] .gear-btn,
+:root[data-theme="retro"] .dnd-toggle input[type="checkbox"],
+:root[data-theme="retro"] .dnd-toggle input[type="checkbox"]::before {
+  border-radius: 0 !important;
+}
+
+:root[data-theme="retro"] .bookmark-item .icon-wrapper {
+  border-radius: 0 !important;
+}
+
+:root[data-theme="retro"] .bookmark-item .label {
+  font-size: 8px !important;
+  line-height: 1.5 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+:root[data-theme="retro"] .sidebar-time {
+  font-size: 30px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+}
+
+:root[data-theme="retro"] .sidebar-date {
+  font-size: 9px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+}

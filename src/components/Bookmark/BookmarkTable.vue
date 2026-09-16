@@ -27,7 +27,9 @@
               <div class="icon"></div>
             </a>
           </td>
-          <td class="td-title">{{ bookmark.title }}</td>
+          <td class="td-title">
+            <span class="title-text">{{ bookmark.title }}</span>
+          </td>
           <td class="td-url">{{ bookmark.url || '—' }}</td>
         </tr>
       </tbody>
@@ -100,61 +102,86 @@ export default {
   }
   .bookmark-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     table-layout: fixed;
-    font-size: 85%;
+    font-size: 14px;
+    background: var(--glass-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
   }
-  .bookmark-table th,
-  .bookmark-table td {
+  .bookmark-table thead th {
     text-align: left;
-    padding: 6px 10px;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.35);
-  }
-  .bookmark-table th {
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.18);
+    color: var(--text-secondary);
+    font-size: 12px;
     font-weight: 600;
-    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+  }
+  .bookmark-table tbody td {
+    padding: 10px 16px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .bookmark-table tbody tr:last-child td {
+    border-bottom: none;
   }
   .bookmark-table tbody tr {
     cursor: pointer;
+    transition: background-color 0.15s ease;
   }
   .bookmark-table tbody tr.drag-enabled {
     cursor: grab;
     user-select: none;
   }
+  .bookmark-table tbody tr:not(.hovered):hover {
+    background: var(--glass-hover);
+  }
   .bookmark-table tbody tr.hovered {
-    background: rgba(255, 255, 255, 0.12);
-    outline: 2px dashed rgba(255, 255, 255, 0.7);
+    background: var(--glass-hover);
+    outline: 2px dashed var(--accent);
     outline-offset: -2px;
   }
-  .bookmark-table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.12);
-  }
   .bookmark-table .td-icon {
-    width: 40px;
+    width: 52px;
   }
   .bookmark-table .td-icon a {
-    display: inline-block;
-    width: 22px;
-    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 3px;
+    border-radius: 7px;
+    background: var(--glass-bg-strong);
+    border: 1px solid var(--border);
   }
   .bookmark-table .td-icon .icon {
     width: 100%;
     height: 100%;
     background-size: cover !important;
     background-repeat: no-repeat !important;
-    border-radius: 4px;
+    border-radius: 3px;
   }
   .bookmark-table .td-title {
     width: 35%;
     white-space: nowrap;
-    overflow: hidden;
     text-overflow: ellipsis;
   }
+  .bookmark-table .td-title .title-text {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  }
   .bookmark-table .td-url {
-    color: var(--color-text);
-    opacity: 0.75;
+    color: var(--text-secondary);
     white-space: nowrap;
-    overflow: hidden;
     text-overflow: ellipsis;
   }
   .bookmark-table .folder .icon { background: var(--vt-bookmark-folder-icon); }
