@@ -7,8 +7,10 @@ import App from './App.vue'
 import router from './config/router'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import { initializeTheme } from './composables/useTheme.js'
+import { initializeLocale } from './composables/useLocale.js'
 
 initializeTheme()
+initializeLocale()
 
 const app = createApp(App)
 app.use(ContextMenu)

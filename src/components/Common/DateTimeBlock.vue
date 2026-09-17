@@ -6,23 +6,28 @@
 </template>
 
 <script>
+import { useLocale } from '@/composables/useLocale.js';
+
 export default {
   name: 'DateTimeBlock',
   data() {
     return {
-      currentTime: '',
-      currentDate: '',
+      now: new Date(),
       intervalRef: null,
     };
   },
+  computed: {
+    currentTime() {
+      return useLocale().toLocaleString(this.now, { hour: '2-digit', minute: '2-digit' });
+    },
+    currentDate() {
+      return useLocale().toLocaleString(this.now, { weekday: 'long', day: '2-digit', month: 'long' });
+    },
+  },
   mounted() {
-    const update = () => {
-      const now = new Date();
-      this.currentTime = now.toLocaleString('ru', { hour: '2-digit', minute: '2-digit' });
-      this.currentDate = now.toLocaleString('ru', { weekday: 'long', day: '2-digit', month: 'long' });
-    };
-    update();
-    this.intervalRef = window.setInterval(update, 1000);
+    this.intervalRef = window.setInterval(() => {
+      this.now = new Date();
+    }, 1000);
   },
   beforeUnmount() {
     if (this.intervalRef) {

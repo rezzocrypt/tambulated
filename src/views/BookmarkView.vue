@@ -10,19 +10,19 @@
     />
     <div class="toolbar-controls">
       <div class="view-toggle">
-        <button :class="{ active: viewMode === 'grid' }" @click="setViewMode('grid')" title="Плитки">Плитки</button>
-        <button :class="{ active: viewMode === 'table' }" @click="setViewMode('table')" title="Таблица">Таблица</button>
+        <button :class="{ active: viewMode === 'grid' }" @click="setViewMode('grid')" :title="t('grid')">{{ t('grid') }}</button>
+        <button :class="{ active: viewMode === 'table' }" @click="setViewMode('table')" :title="t('table')">{{ t('table') }}</button>
       </div>
       <label class="dnd-toggle">
         <input type="checkbox" v-model="dragEnabled" />
-        Перетаскивание
+        {{ t('dragDrop') }}
       </label>
       <SettingsMenu />
     </div>
   </div>
   <div v-show="bookmarks.currentNode.value == null" class="loading">
     <div class="spinner"></div>
-    <span>Загрузка закладок…</span>
+    <span>{{ t('loading') }}</span>
   </div>
   <BookmarkGrid
     v-if="viewMode === 'grid' && bookmarks.currentNode.value != null"
@@ -64,6 +64,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { ready } from '@/assets/chrome-mock.js';
 import chromeAPI from '@/assets/chrome-mock.js';
 import { useBookmarks } from '@/composables/useBookmarks.js';
+import { useLocale } from '@/composables/useLocale.js';
 
 import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css';
 import BreadCrumbs from '@/components/BreadCrumbs.vue';
@@ -72,6 +73,7 @@ import BookmarkTable from '@/components/Bookmark/BookmarkTable.vue';
 import SettingsMenu from '@/components/Common/SettingsMenu.vue';
 
 const bookmarks = useBookmarks();
+const { t } = useLocale();
 
 const VIEW_MODE_KEY = 'viewMode';
 const viewMode = ref(localStorage.getItem(VIEW_MODE_KEY) === 'table' ? 'table' : 'grid');
@@ -110,7 +112,7 @@ function onContextMenu(e, bookmark) {
   ctxMenu.value.show = true;
   ctxMenu.value.items = [
     {
-      label: 'Удалить',
+      label: t('delete'),
       visible: true,
       action: () => {
         bookmarks.removeBookmark(bookmark.id);

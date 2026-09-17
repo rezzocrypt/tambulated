@@ -5,7 +5,8 @@
          v-on:click="clickFn({children: rootElement})"
          @dragover.prevent="onDragOver"
          @dragleave="onDragLeave"
-         @drop.prevent.stop="onDropRoot">Главная</a>
+         @drop.prevent.stop="onDropRoot"
+         :title="t('home')">{{ t('home') }}</a>
     </div>
     <div class="crumb-section" v-for="item in items" :key="item.id">
       <a class="crumb" v-on:click="clickFn(item)">
@@ -16,6 +17,8 @@
 </template>
 
 <script>
+import { useLocale } from '@/composables/useLocale.js';
+
 export default {
   name: 'BreadCrumbs',
   props: {
@@ -39,6 +42,9 @@ export default {
       if (!this.dragEnabled) return;
       this.hoveredCrumb = false;
       if (this.dropRootFn) this.dropRootFn();
+    },
+    t(key) {
+      return useLocale().t(key);
     },
   },
 };

@@ -4,8 +4,8 @@
       class="gear-btn"
       :class="{ open: open }"
       @click="open = !open"
-      title="Настройки"
-      aria-label="Настройки"
+      :title="t('settings')"
+      :aria-label="t('settings')"
       aria-haspopup="true"
       :aria-expanded="open"
     >
@@ -17,9 +17,9 @@
 
     <transition name="pop">
       <div v-if="open" class="settings-pop" @click.stop>
-        <div class="settings-head">Настройки</div>
+        <div class="settings-head">{{ t('settings') }}</div>
         <div class="settings-group">
-          <div class="settings-label">Тема</div>
+          <div class="settings-label">{{ t('theme') }}</div>
           <div class="theme-list">
             <button
               v-for="opt in themeOptions"
@@ -38,44 +38,67 @@
             </button>
           </div>
         </div>
+        <div class="settings-group">
+          <div class="settings-label">{{ t('language') }}</div>
+          <div class="locale-list">
+            <button
+              v-for="opt in localeOptions"
+              :key="opt.value"
+              class="locale-option"
+              :class="{ active: current === opt.value }"
+              :title="opt.title"
+              @click="setLocale(opt.value)"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
       </div>
     </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useTheme } from '@/composables/useTheme.js';
+import { useLocale } from '@/composables/useLocale.js';
 
 const { theme, setTheme } = useTheme();
+const { current, setLocale, t } = useLocale();
 const open = ref(false);
 
 function svg(body) {
   return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }
 
-const themeOptions = [
+const themeOptions = computed(() => [
   {
     value: 'system',
-    label: 'Системная',
+    label: t('themeSystem'),
     icon: svg('<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line>'),
   },
   {
     value: 'light',
-    label: 'Светлая',
+    label: t('themeLight'),
     icon: svg('<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>'),
   },
   {
     value: 'dark',
-    label: 'Тёмная',
+    label: t('themeDark'),
     icon: svg('<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>'),
   },
   {
     value: 'retro',
-    label: '8-бит',
+    label: t('themeRetro'),
     icon: svg('<path d="M6 9h4M8 7v4M15 8h.01M18 11h.01M17.5 6h-11A4.5 4.5 0 0 0 2 10.5v3a3.5 3.5 0 0 0 6.2 2.2l1.3-1.7h4.97l1.3 1.7a3.5 3.5 0 0 0 6.2-2.2v-3A4.5 4.5 0 0 0 17.5 6z"></path>'),
   },
-];
+]);
+
+const localeOptions = computed(() => [
+  { value: 'ru', label: 'RU', title: t('localeRu') },
+  { value: 'en', label: 'EN', title: t('localeEn') },
+  { value: 'zh', label: '中文', title: t('localeZh') },
+]);
 
 function onDocumentClick(e) {
   if (open.value && !e.target.closest('.settings')) open.value = false;
@@ -145,6 +168,9 @@ onBeforeUnmount(() => {
     flex-direction: column;
     gap: 8px;
   }
+  .settings-group + .settings-group {
+    margin-top: 12px;
+  }
   .settings-label {
     font-size: 12px;
     text-transform: uppercase;
@@ -189,6 +215,34 @@ onBeforeUnmount(() => {
     margin-left: auto;
     display: inline-flex;
     color: var(--accent);
+  }
+
+  .locale-list {
+    display: flex;
+    gap: 6px;
+  }
+  .locale-option {
+    appearance: none;
+    flex: 1;
+    padding: 7px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .locale-option:hover {
+    background: var(--popup-hover);
+    color: var(--text-primary);
+  }
+  .locale-option.active {
+    background: var(--accent);
+    border-color: transparent;
+    color: #ffffff;
   }
 
   .pop-enter-active,
