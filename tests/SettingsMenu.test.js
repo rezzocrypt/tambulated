@@ -62,4 +62,12 @@ describe('SettingsMenu', () => {
     expect(wrapper.find('.settings-pop').exists()).toBe(false);
     wrapper.unmount();
   });
+
+  it('shows the app version in the popup', async () => {
+    const wrapper = mount(SettingsMenu);
+    await wrapper.find('.gear-btn').trigger('click');
+    const text = wrapper.find('.settings-version').text();
+    expect(text).toMatch(/^v\d+\.\d+\.\d+$/);
+    wrapper.unmount();
+  });
 });

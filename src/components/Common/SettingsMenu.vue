@@ -53,6 +53,7 @@
             </button>
           </div>
         </div>
+        <div class="settings-version">v{{ version }}</div>
       </div>
     </transition>
   </div>
@@ -62,6 +63,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useTheme } from '@/composables/useTheme.js';
 import { useLocale } from '@/composables/useLocale.js';
+import { version } from '../../../package.json';
 
 const { theme, setTheme } = useTheme();
 const { current, setLocale, t } = useLocale();
@@ -243,6 +245,16 @@ onBeforeUnmount(() => {
     background: var(--accent);
     border-color: transparent;
     color: #ffffff;
+  }
+
+  .settings-version {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    text-align: center;
   }
 
   .pop-enter-active,
