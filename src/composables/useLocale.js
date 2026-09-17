@@ -9,9 +9,21 @@ const MESSAGES = { ru, en, zh };
 
 const LOCALE_MAP = { ru: 'ru', en: 'en', zh: 'zh-CN' };
 
+function detectSystemLocale() {
+  const langs = typeof navigator !== 'undefined'
+    ? (navigator.languages?.length ? navigator.languages : [navigator.language])
+    : [];
+  for (const raw of langs) {
+    if (!raw) continue;
+    const base = String(raw).toLowerCase().split('-')[0];
+    if (SUPPORTED.includes(base)) return base;
+  }
+  return 'ru';
+}
+
 function getStored() {
   const v = typeof localStorage !== 'undefined' ? localStorage.getItem(LOCALE_KEY) : null;
-  return SUPPORTED.includes(v) ? v : 'ru';
+  return SUPPORTED.includes(v) ? v : detectSystemLocale();
 }
 
 const current = ref(getStored());

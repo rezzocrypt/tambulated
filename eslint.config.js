@@ -16,6 +16,7 @@ export default [
         chrome: 'readonly',
         window: 'readonly',
         document: 'readonly',
+        navigator: 'readonly',
         localStorage: 'readonly',
         fetch: 'readonly',
         setInterval: 'readonly',
