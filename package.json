@@ -6,6 +6,7 @@
   "scripts": {
     "serve": "vite",
     "build": "node scripts/build.js",
+    "buildExtension": "node scripts/build.js \"%USERPROFILE%\\AppData\\Local\\Google\\Chrome\\User Data\\MyExtensions\\tambulated\"",
     "preview": "vite preview",
     "lint": "eslint src --fix",
     "test": "vitest run",
