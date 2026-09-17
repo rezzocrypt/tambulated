@@ -1,24 +1,26 @@
 <template>
   <div class="table-wrapper"
        @dragover.prevent="onWrapperDragOver"
-       @drop.prevent="onWrapperDrop">
+       @drop.prevent="onWrapperDrop"
+       @contextmenu.prevent="onWrapperContextMenu">
     <table class="bookmark-table">
       <thead>
         <tr>
           <th class="td-icon"></th>
-          <th class="td-title">Название</th>
-          <th class="td-url">Адрес</th>
+          <th class="td-title">{{ t('tableTitle') }}</th>
+          <th class="td-url">{{ t('tableUrl') }}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="bookmark in items" :key="bookmark.id"
-            :draggable="dragEnabled ? 'true' : undefined"
+            draggable="true"
+            class="drag-enabled"
             :title="bookmark.title"
-            :class="{ hovered: hoveredId === bookmark.id, 'drag-enabled': dragEnabled }"
+            :class="{ hovered: hoveredId === bookmark.id }"
             @click="onClick(bookmark)"
-            @contextmenu="onContextMenu($event, bookmark)"
+            @contextmenu.stop="onContextMenu($event, bookmark)"
             @dragstart="onDragStart(bookmark, $event)"
-            @dragover.prevent="onDragOver(bookmark)"
+            @dragover.prevent.stop="onDragOver(bookmark)"
             @dragleave="onDragLeave(bookmark)"
             @drop.prevent.stop="onDrop(bookmark)"
             @dragend="onDragEnd">
@@ -38,14 +40,16 @@
 </template>
 
 <script>
+import { useLocale } from '@/composables/useLocale.js';
+
 export default {
   name: 'BookmarkTable',
   props: {
     items: { type: Array, default: () => [] },
     clickFn: { type: Function, default: null },
     contextFn: { type: Function, default: null },
+    backgroundContextFn: { type: Function, default: null },
     iconFn: { type: Function, default: null },
-    dragEnabled: { type: Boolean, default: false },
     dragStartFn: { type: Function, default: null },
     dropFn: { type: Function, default: null },
     dropRootFn: { type: Function, default: null },
@@ -60,8 +64,10 @@ export default {
     onContextMenu(e, bookmark) {
       if (this.contextFn) this.contextFn(e, bookmark);
     },
+    onWrapperContextMenu(e) {
+      if (this.backgroundContextFn) this.backgroundContextFn(e);
+    },
     onDragStart(bookmark, e) {
-      if (!this.dragEnabled) return;
       const dt = e.dataTransfer;
       if (dt) {
         dt.effectAllowed = 'move';
@@ -70,26 +76,27 @@ export default {
       if (this.dragStartFn) this.dragStartFn(bookmark);
     },
     onDragOver(bookmark) {
-      if (this.dragEnabled) this.hoveredId = bookmark.id;
+      this.hoveredId = bookmark.id;
     },
     onDragLeave(bookmark) {
-      if (this.dragEnabled && this.hoveredId === bookmark.id) this.hoveredId = null;
+      if (this.hoveredId === bookmark.id) this.hoveredId = null;
     },
     onDrop(bookmark) {
-      if (!this.dragEnabled) return;
       this.hoveredId = null;
       if (this.dropFn) this.dropFn(bookmark);
     },
     onWrapperDragOver() {
-      if (this.dragEnabled) this.hoveredId = null;
+      this.hoveredId = null;
     },
     onWrapperDrop() {
-      if (!this.dragEnabled) return;
       this.hoveredId = null;
       if (this.dropRootFn) this.dropRootFn();
     },
     onDragEnd() {
       this.hoveredId = null;
+    },
+    t(key) {
+      return useLocale().t(key);
     },
   }
 }

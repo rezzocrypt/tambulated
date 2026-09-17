@@ -55,6 +55,16 @@ const chromeMock = {
       if (callback) callback();
     },
 
+    removeTree(id, callback) {
+      const node = findNode(tree, id);
+      if (!node) { if (callback) callback(); return; }
+      const parent = findParent(tree, node.parentId);
+      const index = parent?.children?.indexOf(node) ?? -1;
+      if (index >= 0) parent.children.splice(index, 1);
+      onRemoved._emit(null, { bookmarkId: id, parent, node });
+      if (callback) callback();
+    },
+
     onCreated,
     onRemoved,
     onChanged,

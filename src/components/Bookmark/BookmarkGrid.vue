@@ -1,15 +1,16 @@
 <template>
   <div class="wrapper"
        @dragover.prevent="onWrapperDragOver"
-       @drop.prevent="onWrapperDrop">
-    <div class="bookmark-item"
+       @drop.prevent="onWrapperDrop"
+       @contextmenu.prevent="onWrapperContextMenu">
+    <div class="bookmark-item drag-enabled"
          v-for="bookmark in items" :key="bookmark.id"
-         :draggable="dragEnabled ? 'true' : undefined"
-         :class="{ hovered: hoveredId === bookmark.id, 'drag-enabled': dragEnabled }"
-         @contextmenu="onContextMenu($event, bookmark)"
+         draggable="true"
+         :class="{ hovered: hoveredId === bookmark.id }"
+         @contextmenu.stop="onContextMenu($event, bookmark)"
          @click="onClick(bookmark)"
          @dragstart="onDragStart(bookmark, $event)"
-         @dragover.prevent="onDragOver(bookmark)"
+         @dragover.prevent.stop="onDragOver(bookmark)"
          @dragleave="onDragLeave(bookmark)"
          @drop.prevent.stop="onDrop(bookmark)"
          @dragend="onDragEnd">
@@ -31,8 +32,8 @@ export default {
     items: { type: Array, default: () => [] },
     clickFn: { type: Function, default: null },
     contextFn: { type: Function, default: null },
+    backgroundContextFn: { type: Function, default: null },
     iconFn: { type: Function, default: null },
-    dragEnabled: { type: Boolean, default: false },
     dragStartFn: { type: Function, default: null },
     dropFn: { type: Function, default: null },
     dropRootFn: { type: Function, default: null },
@@ -47,8 +48,10 @@ export default {
     onContextMenu(e, bookmark) {
       if (this.contextFn) this.contextFn(e, bookmark);
     },
+    onWrapperContextMenu(e) {
+      if (this.backgroundContextFn) this.backgroundContextFn(e);
+    },
     onDragStart(bookmark, e) {
-      if (!this.dragEnabled) return;
       const dt = e.dataTransfer;
       if (dt) {
         dt.effectAllowed = 'move';
@@ -57,21 +60,19 @@ export default {
       if (this.dragStartFn) this.dragStartFn(bookmark);
     },
     onDragOver(bookmark) {
-      if (this.dragEnabled) this.hoveredId = bookmark.id;
+      this.hoveredId = bookmark.id;
     },
     onDragLeave(bookmark) {
-      if (this.dragEnabled && this.hoveredId === bookmark.id) this.hoveredId = null;
+      if (this.hoveredId === bookmark.id) this.hoveredId = null;
     },
     onDrop(bookmark) {
-      if (!this.dragEnabled) return;
       this.hoveredId = null;
       if (this.dropFn) this.dropFn(bookmark);
     },
     onWrapperDragOver() {
-      if (this.dragEnabled) this.hoveredId = null;
+      this.hoveredId = null;
     },
     onWrapperDrop() {
-      if (!this.dragEnabled) return;
       this.hoveredId = null;
       if (this.dropRootFn) this.dropRootFn();
     },

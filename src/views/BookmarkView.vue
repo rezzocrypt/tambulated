@@ -5,7 +5,6 @@
       :items="bookmarks.parents.value"
       :root-element="bookmarks.allBookmarks.value"
       :click-fn="clickByItem"
-      :drag-enabled="dragEnabled"
       :drop-root-fn="dropToRoot"
     />
     <div class="toolbar-controls">
@@ -13,10 +12,6 @@
         <button :class="{ active: viewMode === 'grid' }" @click="setViewMode('grid')" :title="t('grid')">{{ t('grid') }}</button>
         <button :class="{ active: viewMode === 'table' }" @click="setViewMode('table')" :title="t('table')">{{ t('table') }}</button>
       </div>
-      <label class="dnd-toggle">
-        <input type="checkbox" v-model="dragEnabled" />
-        {{ t('dragDrop') }}
-      </label>
       <SettingsMenu />
     </div>
   </div>
@@ -29,8 +24,8 @@
     :items="bookmarks.currentNode.value"
     :click-fn="clickByItem"
     :context-fn="onContextMenu"
+    :background-context-fn="onBackgroundMenu"
     :icon-fn="getIcon"
-    :drag-enabled="dragEnabled"
     :drag-start-fn="dragStart"
     :drop-fn="dropOn"
     :drop-root-fn="dropToRoot"
@@ -40,8 +35,8 @@
     :items="bookmarks.currentNode.value"
     :click-fn="clickByItem"
     :context-fn="onContextMenu"
+    :background-context-fn="onBackgroundMenu"
     :icon-fn="getIcon"
-    :drag-enabled="dragEnabled"
     :drag-start-fn="dragStart"
     :drop-fn="dropOn"
     :drop-root-fn="dropToRoot"
@@ -56,11 +51,29 @@
       v-show="menuItem.visible || true"
     />
   </context-menu>
+  <div v-if="dialog.show" class="modal-overlay" @click.self="dialog.show = false" @contextmenu.prevent>
+    <div class="modal">
+      <div class="modal-title">{{ dialog.title }}</div>
+      <input
+        v-model="dialog.value"
+        ref="dialogInput"
+        class="modal-input"
+        type="text"
+        :placeholder="dialog.placeholder"
+        @keyup.enter="submitDialog"
+        @keyup.esc="closeDialog"
+      />
+      <div class="modal-actions">
+        <button class="modal-btn" @click="closeDialog">{{ t('cancel') }}</button>
+        <button class="modal-btn primary" @click="submitDialog">{{ t('ok') }}</button>
+      </div>
+    </div>
+  </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { ready } from '@/assets/chrome-mock.js';
 import chromeAPI from '@/assets/chrome-mock.js';
 import { useBookmarks } from '@/composables/useBookmarks.js';
@@ -77,7 +90,6 @@ const { t } = useLocale();
 
 const VIEW_MODE_KEY = 'viewMode';
 const viewMode = ref(localStorage.getItem(VIEW_MODE_KEY) === 'table' ? 'table' : 'grid');
-const dragEnabled = ref(false);
 const dragItem = ref(null);
 
 const ctxMenu = ref({
@@ -88,6 +100,16 @@ const ctxMenu = ref({
   y: 0,
   items: [],
 });
+
+const dialog = ref({
+  show: false,
+  mode: null,
+  title: '',
+  placeholder: '',
+  value: '',
+  target: null,
+});
+const dialogInput = ref(null);
 
 function getDomainFromUrl(url) {
   const regex = /^(?:https?:\/\/)?(?:www\.)?([^/?#]+)/i;
@@ -112,14 +134,100 @@ function onContextMenu(e, bookmark) {
   ctxMenu.value.show = true;
   ctxMenu.value.items = [
     {
+      label: t('open'),
+      visible: true,
+      action: () => clickByItem(bookmark),
+    },
+    {
+      label: t('rename'),
+      visible: true,
+      action: () => openRenameDialog(bookmark),
+    },
+    {
       label: t('delete'),
       visible: true,
-      action: () => {
-        bookmarks.removeBookmark(bookmark.id);
-      },
+      action: () => removeItem(bookmark),
     },
   ];
   bookmarks.selectedItem.value = bookmark;
+}
+
+function onBackgroundMenu(e) {
+  e.preventDefault();
+  ctxMenu.value.x = e.x;
+  ctxMenu.value.y = e.y;
+  ctxMenu.value.show = true;
+  ctxMenu.value.items = [
+    {
+      label: t('newFolder'),
+      visible: true,
+      action: openCreateFolderDialog,
+    },
+  ];
+  bookmarks.selectedItem.value = null;
+}
+
+function openRenameDialog(bookmark) {
+  dialog.value = {
+    show: true,
+    mode: 'rename',
+    title: t('rename'),
+    placeholder: t('enterName'),
+    value: bookmark.title,
+    target: bookmark,
+  };
+  focusDialog();
+}
+
+function openCreateFolderDialog() {
+  dialog.value = {
+    show: true,
+    mode: 'create',
+    title: t('newFolder'),
+    placeholder: t('folderName'),
+    value: '',
+    target: null,
+  };
+  focusDialog();
+}
+
+function closeDialog() {
+  dialog.value.show = false;
+}
+
+function focusDialog() {
+  nextTick(() => {
+    dialogInput.value?.focus();
+    dialogInput.value?.select();
+  });
+}
+
+async function submitDialog() {
+  const value = dialog.value.value.trim();
+  if (!value) {
+    closeDialog();
+    return;
+  }
+  if (dialog.value.mode === 'rename' && dialog.value.target) {
+    await chromeAPI.bookmarks.update(dialog.value.target.id, { title: value });
+  } else if (dialog.value.mode === 'create') {
+    await chromeAPI.bookmarks.create({
+      parentId: bookmarks.currentParentId.value,
+      title: value,
+    });
+  }
+  closeDialog();
+  await bookmarks.reload();
+}
+
+async function removeItem(bookmark) {
+  if (Array.isArray(bookmark.children)) {
+    await chromeAPI.bookmarks.removeTree(bookmark.id);
+  } else {
+    await chromeAPI.bookmarks.remove(bookmark.id);
+  }
+  await bookmarks.reload();
+  bookmarks.selectedItem.value = null;
 }
 
 function clickByItem(bookmark) {
@@ -241,50 +349,6 @@ onBeforeUnmount(() => {
     box-shadow: 0 2px 10px rgba(109, 92, 255, 0.45);
   }
 
-  /* drag & drop switch */
-  .dnd-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13.5px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-  }
-  .dnd-toggle input[type="checkbox"] {
-    appearance: none;
-    position: relative;
-    width: 36px;
-    height: 20px;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid var(--border);
-    cursor: pointer;
-    outline: none;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-    flex-shrink: 0;
-  }
-  .dnd-toggle input[type="checkbox"]::before {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-    transition: transform 0.2s ease;
-  }
-  .dnd-toggle input[type="checkbox"]:checked {
-    background: var(--accent);
-    border-color: transparent;
-  }
-  .dnd-toggle input[type="checkbox"]:checked::before {
-    transform: translateX(16px);
-  }
-
   /* loading state */
   .loading {
     display: flex;
@@ -305,5 +369,77 @@ onBeforeUnmount(() => {
   }
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* rename / create-folder dialog */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .modal {
+    width: min(360px, calc(100vw - 48px));
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+    background: var(--popup-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .modal-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .modal-input {
+    width: 100%;
+    padding: 10px 14px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--glass-bg-strong);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+  }
+  .modal-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(109, 92, 255, 0.25);
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .modal-btn {
+    padding: 8px 18px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--popup-hover);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  .modal-btn:hover {
+    background: var(--glass-hover);
+  }
+  .modal-btn.primary {
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 2px 10px rgba(109, 92, 255, 0.45);
   }
 </style>

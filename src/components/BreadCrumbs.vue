@@ -25,7 +25,6 @@ export default {
     items: { type: Array, default: () => [] },
     rootElement: { type: Array, default: () => [] },
     clickFn: { type: Function, default: null },
-    dragEnabled: { type: Boolean, default: false },
     dropRootFn: { type: Function, default: null },
   },
   data() {
@@ -33,13 +32,12 @@ export default {
   },
   methods: {
     onDragOver() {
-      if (this.dragEnabled) this.hoveredCrumb = true;
+      this.hoveredCrumb = true;
     },
     onDragLeave() {
-      if (this.dragEnabled) this.hoveredCrumb = false;
+      this.hoveredCrumb = false;
     },
     onDropRoot() {
-      if (!this.dragEnabled) return;
       this.hoveredCrumb = false;
       if (this.dropRootFn) this.dropRootFn();
     },

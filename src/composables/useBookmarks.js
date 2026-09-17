@@ -23,12 +23,12 @@ export function useBookmarks() {
     const pid = currentParentId.value ?? rootId;
     const fresh = findNode(bookmarkTree.value, pid);
     if (fresh && Array.isArray(fresh.children)) {
-      currentNode.value = fresh.children;
-      allBookmarks.value = fresh.children;
+      currentNode.value = [...fresh.children];
+      allBookmarks.value = [...fresh.children];
       currentParentId.value = pid;
     } else {
-      currentNode.value = bookmarksRoot.value;
-      allBookmarks.value = bookmarksRoot.value;
+      currentNode.value = [...bookmarksRoot.value];
+      allBookmarks.value = [...bookmarksRoot.value];
       currentParentId.value = rootId;
     }
   }

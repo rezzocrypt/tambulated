@@ -71,9 +71,7 @@
 :root[data-theme="retro"] .toolbar,
 :root[data-theme="retro"] .view-toggle,
 :root[data-theme="retro"] .view-toggle button,
-:root[data-theme="retro"] .gear-btn,
-:root[data-theme="retro"] .dnd-toggle input[type="checkbox"],
-:root[data-theme="retro"] .dnd-toggle input[type="checkbox"]::before {
+:root[data-theme="retro"] .gear-btn {
   border-radius: 0 !important;
 }
 
