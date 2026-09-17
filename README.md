@@ -1,85 +1,40 @@
 # tambulated
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Chrome-расширение (Manifest V3), заменяющее новую вкладку менеджером закладок на Vue 3 + Vite.
 
-## Быстрый старт
+### Как выглядит
+Классическая тема
+![Классическая тема](images/dark.png)
 
-```bash
-npm install
-```
-
-### Разработка
-
-```bash
-npm run serve
-```
-
-Откроется на `http://localhost:8081`. В dev-режиме используются фейковые данные из `src/assets/fake-bookmark.js` — реальные закладки Chrome не затрагиваются.
-
-### Сборка
-
-```bash
-npm run build
-```
-
-Результат в `dist/`. Фейковые данные **не** попадают в прод-бандл.
+8-bit
+![Ретро тема](images/8bit.png)
 
 ### Загрузка в Chrome
 
+Не регистрировался в Google Console так как увидел сбор 5$, а в наличии жадность и отсутствие карты Мастеркард или Виза
+
+0. Собрать расширение командой `npm run build`, создастся папка `dist`
 1. `chrome://extensions` → включить «Режим разработчика»
 2. «Загрузить распакованное расширение» → выбрать папку `dist`
 
-### Линтер
+## Возможности
 
-```bash
-npm run lint
-```
+- **Плиточный / табличный** режимы просмотра закладок (переключатель в тулбаре, выбор сохраняется).
+- **Навигация по папкам** — хлебные крошки, «Главная» как drop-зона.
+- **Drag & drop** — перемещение закладок и папок (всегда включён).
+- **Контекстное меню** (ПКМ): открыть, переименовать, удалить закладку/папку, создать новую папку (по ПКМ на пустом месте).
+- **Темы** — `system` / `light` / `dark` / `retro`, выбор сохраняется.
+- **i18n** — локализация: русский / English / 中文; язык по умолчанию определяется из системного, выбор сохраняется.
 
-## Структура
+## Скрипты
 
-```
-src/
-  assets/
-    chrome-mock.js          ← mock Chrome API (только dev) + загрузка fake-bookmark.js
-    fake-bookmark.js        ← фейковые закладки (dev only)
-    icons.css               ← платформенные иконки по доменам
-    main.css                ← глобальные стили, CSS-переменные
-    icons/platform/*.png    ← PNG-иконки платформ
-  components/
-    BreadCrumbs.vue         ← хлебные крошки + drop-зона «Главная»
-    Bookmark/
-      BookmarkGrid.vue      ← плиточный режим
-      BookmarkTable.vue     ← табличный режим
-    Common/
-      DateTimeBlock.vue     ← часы/дата в боковой панели
-      PageBackground.vue    ← фон (Bing daily image)
-  composables/
-    useBookmarks.js         ← реактивные данные: getTree, move, remove, навигация по папкам
-  utils/
-    bookmarkTree.js         ← утилиты дерева: findNode, findParent, moveNode, removeNode, createNode
-    bookmarks.js            ← promise-обёртка chrome.bookmarks API
-  config/
-    router.js               ← маршрутизация (hash history)
-  views/
-    BookmarkView.vue        ← основная страница (тулбар, переключатели, DnD, контекстное меню)
-    AboutView.vue
-    NotFoundView.vue
-public/
-  manifest.json             ← MV3 манифест
-  icons/                    ← иконки расширения
-  images/defaultbg.jpg      ← фоллбэк-фон
-```
-
-## Ключевые файлы
-
-| Файл | Назначение |
+| Команда | Описание |
 |---|---|
-| `src/utils/bookmarkTree.js` | Обход/модификация дерева закладок (shared между mock и UI) |
-| `src/composables/useBookmarks.js` | Единый источник правды для состояния закладок |
-| `src/assets/chrome-mock.js` | dev-only mock; в реальном расширении используется `chrome.*` API |
-| `vite.config.js` | Конфигурация Vite с алиасом `@` → `src/` |
-
-## Режимы
-
-- **Разработка** (`npm run serve`): fake-bookmark.js загружается динамически; `chrome` отсутствует → mock.
-- **Прод** (`npm run build`): fake-bookmark.js **не** импортируется; используется нативный `chrome.bookmarks` API.
+| `npm run serve` | Dev-сервер Vite (`localhost:8081`) |
+| `npm run build` | Прод-сборка в `dist/` |
+| `npm run preview` | Просмотр собранного `dist/` |
+| `npm run lint` | ESLint (`eslint src --fix`) |
+| `npm run test` | Unit-тесты (Vitest, однократный прогон) |
+| `npm run test:watch` | Unit-тесты в watch-режиме |
