@@ -9,8 +9,12 @@
     />
     <div class="toolbar-controls">
       <div class="view-toggle">
-        <button :class="{ active: viewMode === 'grid' }" @click="setViewMode('grid')" :title="t('grid')">{{ t('grid') }}</button>
-        <button :class="{ active: viewMode === 'table' }" @click="setViewMode('table')" :title="t('table')">{{ t('table') }}</button>
+        <button :class="{ active: viewMode === 'grid' }" @click="setViewMode('grid')" :title="t('grid')" :aria-label="t('grid')">
+          <span class="view-icon icon-grid"></span>
+        </button>
+        <button :class="{ active: viewMode === 'table' }" @click="setViewMode('table')" :title="t('table')" :aria-label="t('table')">
+          <span class="view-icon icon-table"></span>
+        </button>
       </div>
       <SettingsMenu />
     </div>
@@ -329,16 +333,38 @@ onBeforeUnmount(() => {
   }
   .view-toggle button {
     appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 30px;
     border: none;
     background: transparent;
     color: var(--text-secondary);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 6px 18px;
+    padding: 0;
     border-radius: 999px;
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .view-toggle .view-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    background-color: currentColor;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+  }
+  .view-toggle .icon-grid {
+    -webkit-mask-image: var(--vt-view-grid-icon);
+    mask-image: var(--vt-view-grid-icon);
+  }
+  .view-toggle .icon-table {
+    -webkit-mask-image: var(--vt-view-table-icon);
+    mask-image: var(--vt-view-table-icon);
   }
   .view-toggle button:hover:not(.active) {
     color: var(--text-primary);
