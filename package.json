@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "serve": "vite",
-    "build": "vite build",
+    "build": "node scripts/build.js",
     "preview": "vite preview",
     "lint": "eslint src --fix",
     "test": "vitest run",

@@ -19,6 +19,7 @@ export default [
         navigator: 'readonly',
         localStorage: 'readonly',
         fetch: 'readonly',
+        Image: 'readonly',
         setInterval: 'readonly',
         clearInterval: 'readonly',
         console: 'readonly',
