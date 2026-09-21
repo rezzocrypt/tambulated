@@ -2,9 +2,11 @@
   <PageBackground />
   <div class="dashboard">
     <aside class="sidebar">
-      <DateTimeBlock />
-      <WeatherBlock />
-      <CryptoRates />
+      <component
+        v-for="id in visibleBlocks"
+        :key="id"
+        :is="BLOCK_COMPONENTS[id]"
+      />
     </aside>
     <main class="main" @contextmenu.prevent>
       <router-view />
@@ -13,10 +15,21 @@
 </template>
 
 <script setup>
+  import { computed } from 'vue';
   import PageBackground from '@/components/Common/PageBackground.vue';
   import DateTimeBlock from '@/components/Common/DateTimeBlock.vue';
   import WeatherBlock from '@/components/Common/WeatherBlock.vue';
   import CryptoRates from '@/components/Common/CryptoRates.vue';
+  import { useBlockConfig } from '@/composables/useBlocks.js';
+
+  const BLOCK_COMPONENTS = Object.freeze({
+    datetime: DateTimeBlock,
+    weather: WeatherBlock,
+    crypto: CryptoRates,
+  });
+
+  const { blocks, isHidden } = useBlockConfig();
+  const visibleBlocks = computed(() => blocks.value.filter((id) => !isHidden(id)));
 </script>
 
 <style scoped>

@@ -140,3 +140,40 @@
 :root[data-theme="retro"] .crypto-result .crypto-sym {
   font-size: 7px !important;
 }
+
+:root[data-theme="retro"] .weather-card {
+  border-radius: 0 !important;
+}
+
+:root[data-theme="retro"] .weather-title,
+:root[data-theme="retro"] .weather-region {
+  font-size: 8px !important;
+  letter-spacing: 0.08em !important;
+}
+
+:root[data-theme="retro"] .weather-temp {
+  font-size: 24px !important;
+  font-weight: 400 !important;
+}
+
+:root[data-theme="retro"] .weather-desc,
+:root[data-theme="retro"] .weather-details,
+:root[data-theme="retro"] .weather-status,
+:root[data-theme="retro"] .weather-region-row,
+:root[data-theme="retro"] .weather-panel-status {
+  font-size: 7px !important;
+}
+
+:root[data-theme="retro"] .weather-gear,
+:root[data-theme="retro"] .weather-panel,
+:root[data-theme="retro"] .weather-search-input,
+:root[data-theme="retro"] .weather-result,
+:root[data-theme="retro"] .weather-region-clear,
+:root[data-theme="retro"] .block-arrow,
+:root[data-theme="retro"] .block-toggle {
+  border-radius: 0 !important;
+}
+
+:root[data-theme="retro"] .block-name {
+  font-size: 8px !important;
+}
