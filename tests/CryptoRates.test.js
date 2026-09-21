@@ -40,12 +40,10 @@ function mockApi({ prices = API_DATA, ok = true, search = SEARCH_DATA } = {}) {
 
 function resetConfig() {
   const { coins, selected, addCoin, toggleCoin, removeCoin } = useCryptoRatesConfig();
-  const defIds = DEFAULT_COINS.map((c) => c.id);
-  [...coins.value].forEach((c) => {
-    if (!defIds.includes(c.id)) removeCoin(c.id);
-  });
+  [...coins.value].forEach((c) => removeCoin(c.id));
+  DEFAULT_COINS.forEach((c) => addCoin(c));
+  [...selected.value].forEach((id) => toggleCoin(id));
   DEFAULT_COINS.forEach((c) => {
-    if (!coins.value.some((x) => x.id === c.id)) addCoin(c);
     if (!selected.value.includes(c.id)) toggleCoin(c.id);
   });
 }
@@ -288,9 +286,10 @@ describe('CryptoRates', () => {
     await wrapper.find('.crypto-gear').trigger('click');
     const rows = wrapper.findAll('.crypto-opt-row');
     expect(rows).toHaveLength(2);
-    wrapper.vm.onDragStart(0, {});
-    wrapper.vm.onDragOver(1);
-    wrapper.vm.onDrop(1);
+    expect(rows[0].find('.crypto-opt .crypto-sym').text()).toBe('BTC');
+    await rows[0].find('.crypto-grip').trigger('dragstart');
+    await rows[1].trigger('dragover');
+    await rows[1].trigger('drop');
 
     const { coins, selected } = useCryptoRatesConfig();
     expect(coins.value.map((c) => c.id)).toEqual(['ethereum', 'bitcoin']);

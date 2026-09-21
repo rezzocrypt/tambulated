@@ -9,7 +9,8 @@
   },
   "permissions": [
     "bookmarks",
-    "storage"
+    "storage",
+    "geolocation"
   ],
   "icons": {
     "16": "icons/icon16.png",
