@@ -14,9 +14,9 @@
         </button>
         <button :class="{ active: viewMode === 'table' }" @click="setViewMode('table')" :title="t('table')" :aria-label="t('table')">
           <span class="view-icon icon-table"></span>
-        </button>
+</button>
       </div>
-      <SettingsMenu />
+      <BlocksSettings />
     </div>
   </div>
   <div v-show="bookmarks.currentNode.value == null" class="loading">
@@ -87,7 +87,7 @@ import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css';
 import BreadCrumbs from '@/components/BreadCrumbs.vue';
 import BookmarkGrid from '@/components/Bookmark/BookmarkGrid.vue';
 import BookmarkTable from '@/components/Bookmark/BookmarkTable.vue';
-import SettingsMenu from '@/components/Common/SettingsMenu.vue';
+import BlocksSettings from '@/components/Common/BlocksSettings.vue';
 
 const bookmarks = useBookmarks();
 const { t } = useLocale();

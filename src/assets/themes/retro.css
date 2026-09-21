@@ -177,3 +177,45 @@
 :root[data-theme="retro"] .block-name {
   font-size: 8px !important;
 }
+
+:root[data-theme="retro"] .app-menu,
+:root[data-theme="retro"] .app-menu-item,
+:root[data-theme="retro"] .kb-toolbar,
+:root[data-theme="retro"] .kb-arrow,
+:root[data-theme="retro"] .kb-tool-btn,
+:root[data-theme="retro"] .kb-board,
+:root[data-theme="retro"] .kb-column,
+:root[data-theme="retro"] .kb-card,
+:root[data-theme="retro"] .kb-done,
+:root[data-theme="retro"] .kb-col-add,
+:root[data-theme="retro"] .kb-move,
+:root[data-theme="retro"] .kb-edit,
+:root[data-theme="retro"] .kb-freq-opt,
+:root[data-theme="retro"] .kb-day-pick,
+:root[data-theme="retro"] .modal-btn {
+  border-radius: 0 !important;
+}
+
+:root[data-theme="retro"] .kb-week-label {
+  font-size: 9px !important;
+  letter-spacing: 0.06em !important;
+}
+
+:root[data-theme="retro"] .kb-today,
+:root[data-theme="retro"] .kb-stats-text,
+:root[data-theme="retro"] .kb-tool-btn,
+:root[data-theme="retro"] .kb-day-name,
+:root[data-theme="retro"] .kb-time,
+:root[data-theme="retro"] .kb-freq,
+:root[data-theme="retro"] .kb-freq-opt,
+:root[data-theme="retro"] .kb-day-pick,
+:root[data-theme="retro"] .kb-empty p,
+:root[data-theme="retro"] .kb-empty-sub,
+:root[data-theme="retro"] .modal-input,
+:root[data-theme="retro"] .modal-btn {
+  font-size: 8px !important;
+}
+
+:root[data-theme="retro"] .kb-day-num {
+  font-size: 10px !important;
+}

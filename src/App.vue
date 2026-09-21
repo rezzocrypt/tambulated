@@ -1,7 +1,7 @@
 <template>
   <PageBackground />
-  <div class="dashboard">
-    <aside class="sidebar">
+  <div class="dashboard" :class="{ 'no-sidebar': !showSidebar }">
+    <aside v-if="showSidebar" class="sidebar">
       <component
         v-for="id in visibleBlocks"
         :key="id"
@@ -12,11 +12,14 @@
       <router-view />
     </main>
   </div>
+  <AppMenu />
 </template>
 
 <script setup>
   import { computed } from 'vue';
+  import { useRoute } from 'vue-router';
   import PageBackground from '@/components/Common/PageBackground.vue';
+  import AppMenu from '@/components/Common/AppMenu.vue';
   import DateTimeBlock from '@/components/Common/DateTimeBlock.vue';
   import WeatherBlock from '@/components/Common/WeatherBlock.vue';
   import CryptoRates from '@/components/Common/CryptoRates.vue';
@@ -30,6 +33,8 @@
 
   const { blocks, isHidden } = useBlockConfig();
   const visibleBlocks = computed(() => blocks.value.filter((id) => !isHidden(id)));
+  const route = useRoute();
+  const showSidebar = computed(() => route.name !== 'tasks');
 </script>
 
 <style scoped>

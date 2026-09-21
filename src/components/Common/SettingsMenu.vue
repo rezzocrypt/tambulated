@@ -53,54 +53,6 @@
             </button>
           </div>
         </div>
-        <div class="settings-group">
-          <div class="settings-label">{{ t('blocks') }}</div>
-          <div class="block-list">
-            <div
-              v-for="id in blocks"
-              :key="id"
-              class="block-row"
-              :class="{ off: isHidden(id) }"
-            >
-              <span class="block-name">{{ blockLabel(id) }}</span>
-              <div class="block-controls">
-                <button
-                  class="block-arrow"
-                  :disabled="isFirst(id)"
-                  :title="t('blockMoveUp')"
-                  :aria-label="`${t('blockMoveUp')}: ${blockLabel(id)}`"
-                  @click="moveUp(id)"
-                >
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="18 15 12 9 6 15" />
-                  </svg>
-                </button>
-                <button
-                  class="block-arrow"
-                  :disabled="isLast(id)"
-                  :title="t('blockMoveDown')"
-                  :aria-label="`${t('blockMoveDown')}: ${blockLabel(id)}`"
-                  @click="moveDown(id)"
-                >
-                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
-                <button
-                  class="block-toggle"
-                  :class="{ on: !isHidden(id) }"
-                  :title="t(isHidden(id) ? 'blockShow' : 'blockHide')"
-                  :aria-label="`${t(isHidden(id) ? 'blockShow' : 'blockHide')}: ${blockLabel(id)}`"
-                  role="switch"
-                  :aria-checked="!isHidden(id)"
-                  @click="toggle(id)"
-                >
-                  <span class="block-toggle-knob"></span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
         <div class="settings-version">v{{ version }}</div>
       </div>
     </transition>
@@ -111,12 +63,10 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useTheme } from '@/composables/useTheme.js';
 import { useLocale } from '@/composables/useLocale.js';
-import { useBlockConfig } from '@/composables/useBlocks.js';
 import { version } from '../../../package.json';
 
 const { theme, setTheme } = useTheme();
 const { current, setLocale, t } = useLocale();
-const { blocks, isHidden, toggle, moveUp, moveDown } = useBlockConfig();
 const open = ref(false);
 
 function svg(body) {
@@ -151,21 +101,6 @@ const localeOptions = computed(() => [
   { value: 'en', label: 'EN', title: t('localeEn') },
   { value: 'zh', label: '中文', title: t('localeZh') },
 ]);
-
-function blockLabel(id) {
-  const labels = {
-    datetime: t('blockDatetime'),
-    weather: t('blockWeather'),
-    crypto: t('blockCrypto'),
-  };
-  return labels[id] || id;
-}
-function isFirst(id) {
-  return blocks.value[0] === id;
-}
-function isLast(id) {
-  return blocks.value[blocks.value.length - 1] === id;
-}
 
 function onDocumentClick(e) {
   if (open.value && !e.target.closest('.settings')) open.value = false;
@@ -310,95 +245,6 @@ onBeforeUnmount(() => {
     background: var(--accent);
     border-color: transparent;
     color: #ffffff;
-  }
-
-  .block-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .block-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 8px;
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    transition: background-color 0.15s ease;
-  }
-  .block-row:hover {
-    background: var(--popup-hover);
-  }
-  .block-row.off .block-name {
-    opacity: 0.45;
-  }
-  .block-name {
-    flex: 1;
-    min-width: 0;
-    font-size: 14px;
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .block-controls {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-  }
-  .block-arrow {
-    appearance: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-  }
-  .block-arrow:hover:not(:disabled) {
-    background: var(--popup-hover);
-    color: var(--text-primary);
-  }
-  .block-arrow:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-  .block-toggle {
-    position: relative;
-    appearance: none;
-    width: 34px;
-    height: 20px;
-    flex-shrink: 0;
-    margin-left: 2px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--glass-bg);
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-  }
-  .block-toggle.on {
-    background: var(--accent);
-    border-color: transparent;
-  }
-  .block-toggle-knob {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--text-secondary);
-    transition: transform 0.2s ease, background-color 0.2s ease;
-  }
-  .block-toggle.on .block-toggle-knob {
-    transform: translateX(14px);
-    background: #ffffff;
   }
 
   .settings-version {
