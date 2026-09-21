@@ -27,7 +27,25 @@
         </button>
       </div>
       <div class="kb-tools">
-        <button class="kb-tool-btn primary" @click="openNewEditor(null)">
+        <button v-if="!connected" class="kb-tool-btn" :title="t('tasksAuthHint')" @click="connectCalendar">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>{{ t('tasksConnect') }}</span>
+        </button>
+        <button v-else-if="status === 'loading'" class="kb-tool-btn" disabled>
+          <span class="kb-spin"></span>
+          <span>{{ t('tasksLoading') }}</span>
+        </button>
+        <button v-else-if="status === 'error'" class="kb-tool-btn" @click="reloadWeek">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 4v6h6"></path>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span>{{ t('tasksRetry') }}</span>
+        </button>
+        <button class="kb-tool-btn primary" :disabled="saving || !connected" @click="openNewEditor(null)">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -65,16 +83,16 @@
           <div class="kb-col-body">
             <div
               v-for="card in col.cards"
-              :key="`${card.taskId}:${card.dateStr}`"
+              :key="`${card.seriesId}:${card.dateStr}`"
               class="kb-card"
-              :class="{ done: card.done, drop: dragTaskId === card.taskId }"
+              :class="{ done: card.done, drop: dragTaskId === card.seriesId }"
             >
               <span
                 class="kb-grip"
                 draggable="true"
                 :title="t('tasksDrag')"
                 :aria-label="t('tasksDrag')"
-                @dragstart="onDragStart(card.taskId, card.day)"
+                @dragstart="onDragStart(card.seriesId, card.day)"
                 @dragend="clearDrag"
               >
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -91,7 +109,7 @@
                 :class="{ on: card.done }"
                 :aria-pressed="card.done"
                 :aria-label="`${card.text}: ${card.dateStr}`"
-                @click="toggleDone(card.taskId, card.dateStr)"
+                @click="toggleDone(card.seriesId, card.dateStr)"
               >
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12" />
@@ -107,7 +125,7 @@
                   class="kb-edit"
                   :title="t('tasksEdit')"
                   :aria-label="`${t('tasksEdit')}: ${card.text}`"
-                  @click="openTaskEditor(card.taskId)"
+                  @click="openTaskEditor(card.seriesId)"
                 >
                   <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
@@ -118,7 +136,16 @@
           </div>
         </div>
       </div>
-      <div v-if="!tasks.length" class="kb-empty">
+      <div v-if="status === 'loading'" class="kb-empty">
+        <div class="kb-empty-icon kb-spin"></div>
+        <p>{{ t('tasksLoading') }}</p>
+      </div>
+      <div v-else-if="status === 'error'" class="kb-empty">
+        <div class="kb-empty-icon">⚠</div>
+        <p>{{ t('tasksError') }}</p>
+        <button class="kb-empty-btn" @click="reloadWeek">{{ t('tasksRetry') }}</button>
+      </div>
+      <div v-else-if="status === 'ready' && !events.length" class="kb-empty">
         <div class="kb-empty-icon">
           <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="5" width="18" height="16" rx="2"></rect>
@@ -183,12 +210,12 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button v-if="editor.id" class="modal-btn danger" @click="deleteEditorTask">{{ t('delete') }}</button>
+          <button v-if="editor.id" class="modal-btn danger" :disabled="saving" @click="deleteEditorTask">{{ t('delete') }}</button>
           <span class="kb-spacer"></span>
           <button class="modal-btn" @click="editor = null">{{ t('cancel') }}</button>
           <button
             class="modal-btn primary"
-            :disabled="!editor.text.trim() || !editorSaveAllowed"
+            :disabled="!editor.text.trim() || !editorSaveAllowed || saving"
             @click="saveEditor"
           >
             {{ t('tasksSave') }}
@@ -200,35 +227,43 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { useLocale } from '@/composables/useLocale.js';
 import { ALL_DAYS, DAY_NAMES_KEY, dateKey, mondayOf, parseDateKey, shiftWeek, weekdayNum } from '@/utils/week.js';
-import { FREQS, useKanban } from '@/composables/useKanban.js';
+import { FREQS, useKanban, checkCalendarConnection } from '@/composables/useKanban.js';
 
 const { t, toLocaleString } = useLocale();
 const {
-  tasks,
-  getTask,
+  events,
+  status,
+  saving,
+  loadWeek,
+  reloadWeek,
+  toggleDone,
+  isDone,
+  occurrenceBySeries,
   addTask,
   updateTask,
   removeTask,
-  toggleDone,
-  isDone,
-  occurrenceDates,
   moveOccurrence,
   weekStats,
 } = useKanban();
 
+const connected = ref(false);
+
 const week = ref(mondayOf(new Date()));
 const todayKey = dateKey(new Date());
-const dates = computed(() => weekDatesArray(week.value));
+const dates = computed(() => {
+  return ALL_DAYS.map((offset) => new Date(week.value.getFullYear(), week.value.getMonth(), week.value.getDate() + offset - 1));
+});
 
-function weekDatesArray(monday) {
-  return ALL_DAYS.map((offset) => {
-    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + offset - 1);
-    return d;
-  });
-}
+onMounted(async () => {
+  connected.value = await checkCalendarConnection();
+});
+
+watch(week, (monday) => {
+  loadWeek(monday);
+}, { immediate: true });
 
 const isCurrentWeek = computed(() => {
   return dateKey(week.value) === dateKey(mondayOf(new Date()));
@@ -247,6 +282,13 @@ const weekLabel = computed(() => {
   return `${fmt(first, true)} – ${fmt(last, true)}`;
 });
 
+async function connectCalendar() {
+  connected.value = await checkCalendarConnection(true);
+  if (connected.value) {
+    await loadWeek(week.value);
+  }
+}
+
 function timeRank(time) {
   if (!time) return Number.MAX_SAFE_INTEGER;
   const [h, m] = time.split(':').map(Number);
@@ -255,20 +297,17 @@ function timeRank(time) {
 
 const cards = computed(() => {
   const out = [];
-  for (const task of tasks.value) {
-    for (const date of occurrenceDates(task, week.value)) {
-      const dateStr = dateKey(date);
-      out.push({
-        taskId: task.id,
-        dateStr,
-        day: ((date.getDay() + 6) % 7) + 1,
-        time: task.time,
-        endTime: task.endTime || '',
-        text: task.text,
-        freq: task.freq,
-        done: isDone(task.id, dateStr),
-      });
-    }
+  for (const ev of events.value) {
+    out.push({
+      seriesId: ev.seriesId,
+      dateStr: ev.dateStr,
+      day: ev.day,
+      time: ev.time,
+      endTime: ev.endTime || '',
+      text: ev.text,
+      freq: ev.freq,
+      done: isDone(ev.seriesId, ev.dateStr),
+    });
   }
   return out.sort((a, b) => timeRank(a.time) - timeRank(b.time) || a.text.localeCompare(b.text));
 });
@@ -288,7 +327,7 @@ const columns = computed(() => {
   }));
 });
 
-const stats = computed(() => weekStats(week.value));
+const stats = computed(() => weekStats());
 const progressPct = computed(() => (stats.value.total ? Math.round((stats.value.done / stats.value.total) * 100) : 0));
 
 const dragTaskId = ref(null);
@@ -330,7 +369,6 @@ function openNewEditor(day) {
     endTime: '',
     freq: day ? 'once' : 'daily',
     days: day ? [day] : [...ALL_DAYS],
-    week: dateKey(week.value),
     date: day ? dateKey(dates.value[day - 1]) : '',
   };
   nextTick(() => {
@@ -339,18 +377,17 @@ function openNewEditor(day) {
   });
 }
 
-function openTaskEditor(taskId) {
-  const task = getTask(taskId);
-  if (!task) return;
+function openTaskEditor(seriesId) {
+  const ev = occurrenceBySeries(seriesId);
+  if (!ev) return;
   editor.value = {
-    id: task.id,
-    text: task.text,
-    time: task.time || '',
-    endTime: task.endTime || '',
-    freq: task.freq,
-    days: [...task.days],
-    week: task.week,
-    date: task.date || '',
+    id: ev.seriesId,
+    text: ev.text,
+    time: ev.time || '',
+    endTime: ev.endTime || '',
+    freq: ev.freq,
+    days: [...ev.days],
+    date: ev.freq === 'once' ? ev.dateStr : '',
   };
 }
 
@@ -372,13 +409,11 @@ function toggleEditorDay(day) {
   }
 }
 
-function saveEditor() {
+async function saveEditor() {
   const text = editor.value.text.trim();
   if (!text || !editorSaveAllowed.value) return;
   const freq = editor.value.freq;
   let days;
-  let week = null;
-  let date = '';
   if (freq === 'daily') {
     days = [...ALL_DAYS];
   } else if (freq === 'weekdays') {
@@ -388,8 +423,6 @@ function saveEditor() {
   } else {
     const parsed = parseDateKey(editor.value.date);
     days = [weekdayNum(parsed)];
-    week = dateKey(mondayOf(parsed));
-    date = dateKey(parsed);
   }
   const payload = {
     text,
@@ -397,24 +430,23 @@ function saveEditor() {
     endTime: editor.value.endTime,
     freq,
     days,
-    week,
-    date,
+    date: freq === 'once' ? editor.value.date : '',
   };
   if (editor.value.id) {
-    updateTask(editor.value.id, payload);
+    await updateTask(editor.value.id, payload);
   } else {
-    addTask(payload);
+    await addTask(payload);
   }
   editor.value = null;
 }
 
-function deleteEditorTask() {
-  removeTask(editor.value.id);
+async function deleteEditorTask() {
+  await removeTask(editor.value.id);
   editor.value = null;
 }
 
-function onDragStart(taskId, fromDay) {
-  dragTaskId.value = taskId;
+function onDragStart(seriesId, fromDay) {
+  dragTaskId.value = seriesId;
   dragFromDay.value = fromDay;
 }
 
@@ -578,6 +610,24 @@ function onColumnDrop(day) {
 }
 .kb-tool-btn.primary:hover {
   filter: brightness(1.08);
+}
+.kb-tool-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.kb-spin {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border-strong);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: kb-rotate 0.7s linear infinite;
+}
+@keyframes kb-rotate {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .kb-board-wrap {
@@ -798,6 +848,9 @@ function onColumnDrop(day) {
 }
 .kb-empty-icon {
   opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .kb-empty p {
   font-size: 14px;
@@ -805,6 +858,21 @@ function onColumnDrop(day) {
 .kb-empty-sub {
   font-size: 12px;
   opacity: 0.7;
+}
+.kb-empty-btn {
+  appearance: none;
+  padding: 7px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--glass-bg-strong);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.kb-empty-btn:hover {
+  background: var(--glass-hover);
 }
 
 .modal-overlay {
