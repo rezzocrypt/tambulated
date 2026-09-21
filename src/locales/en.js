@@ -24,4 +24,13 @@ export default {
   folderName: 'Folder name',
   tableTitle: 'Name',
   tableUrl: 'URL',
+  cryptoTitle: 'Crypto rates',
+  cryptoEmpty: 'Select coins in settings',
+  cryptoSearchPlaceholder: 'Search for a coin…',
+  cryptoSearching: 'Searching…',
+  cryptoNoResults: 'No results',
+  cryptoAdd: 'Add',
+  cryptoDrag: 'Drag to reorder',
+  cryptoLoading: 'Loading…',
+  cryptoError: 'Failed to load rates',
 };

@@ -24,4 +24,13 @@ export default {
   folderName: 'Название папки',
   tableTitle: 'Название',
   tableUrl: 'Адрес',
+  cryptoTitle: 'Курсы криптовалют',
+  cryptoEmpty: 'Выберите монеты в настройках',
+  cryptoSearchPlaceholder: 'Поиск монеты…',
+  cryptoSearching: 'Поиск…',
+  cryptoNoResults: 'Ничего не найдено',
+  cryptoAdd: 'Добавить',
+  cryptoDrag: 'Перетащите для сортировки',
+  cryptoLoading: 'Загрузка…',
+  cryptoError: 'Не удалось получить курсы',
 };

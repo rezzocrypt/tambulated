@@ -101,3 +101,42 @@
   text-transform: uppercase !important;
   letter-spacing: 0.08em !important;
 }
+
+:root[data-theme="retro"] .crypto-card {
+  border-radius: 0 !important;
+}
+
+:root[data-theme="retro"] .crypto-title {
+  font-size: 8px !important;
+  letter-spacing: 0.08em !important;
+}
+
+:root[data-theme="retro"] .crypto-symbol,
+:root[data-theme="retro"] .crypto-price,
+:root[data-theme="retro"] .crypto-change,
+:root[data-theme="retro"] .crypto-status {
+  font-size: 8px !important;
+}
+
+:root[data-theme="retro"] .crypto-gear,
+:root[data-theme="retro"] .crypto-panel,
+:root[data-theme="retro"] .crypto-search-input,
+:root[data-theme="retro"] .crypto-result,
+:root[data-theme="retro"] .crypto-opt,
+:root[data-theme="retro"] .crypto-opt-remove,
+:root[data-theme="retro"] .crypto-grip {
+  border-radius: 0 !important;
+}
+
+:root[data-theme="retro"] .crypto-search-input,
+:root[data-theme="retro"] .crypto-result,
+:root[data-theme="retro"] .crypto-opt,
+:root[data-theme="retro"] .crypto-opt-remove,
+:root[data-theme="retro"] .crypto-panel-status {
+  font-size: 7px !important;
+}
+
+:root[data-theme="retro"] .crypto-opt .crypto-sym,
+:root[data-theme="retro"] .crypto-result .crypto-sym {
+  font-size: 7px !important;
+}

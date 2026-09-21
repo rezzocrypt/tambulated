@@ -24,4 +24,13 @@ export default {
   folderName: '文件夹名称',
   tableTitle: '名称',
   tableUrl: '网址',
+  cryptoTitle: '加密货币汇率',
+  cryptoEmpty: '请在设置中选择币种',
+  cryptoSearchPlaceholder: '搜索币种…',
+  cryptoSearching: '搜索中…',
+  cryptoNoResults: '未找到结果',
+  cryptoAdd: '添加',
+  cryptoDrag: '拖拽排序',
+  cryptoLoading: '加载中…',
+  cryptoError: '获取汇率失败',
 };

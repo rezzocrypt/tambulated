@@ -3,6 +3,7 @@
   <div class="dashboard">
     <aside class="sidebar">
       <DateTimeBlock />
+      <CryptoRates />
     </aside>
     <main class="main" @contextmenu.prevent>
       <router-view />
@@ -13,6 +14,7 @@
 <script setup>
   import PageBackground from '@/components/Common/PageBackground.vue';
   import DateTimeBlock from '@/components/Common/DateTimeBlock.vue';
+  import CryptoRates from '@/components/Common/CryptoRates.vue';
 </script>
 
 <style scoped>
