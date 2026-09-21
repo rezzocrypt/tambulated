@@ -94,22 +94,6 @@ describe('KanbanView', () => {
     wrapper.unmount();
   });
 
-  it('moves a card to an adjacent day with the arrow buttons', async () => {
-    const task = addOnce('Совещание', 3);
-    const { getTask, occurrenceDates } = useKanban();
-    const wrapper = mount(KanbanView);
-
-    const wedColumn = wrapper.findAll('.kb-column')[2];
-    await wedColumn.find('.kb-card').findAll('.kb-move')[0].trigger('click'); // prev day
-
-    const moved = occurrenceDates(getTask(task.id), new Date(2026, 0, 5)).map(dateKeyOf);
-    expect(moved).toEqual(['2026-01-06']);
-    const tueColumn = wrapper.findAll('.kb-column')[1];
-    expect(tueColumn.findAll('.kb-card')).toHaveLength(1);
-    expect(wrapper.findAll('.kb-column')[2].findAll('.kb-card')).toHaveLength(0);
-    wrapper.unmount();
-  });
-
   it('moves a card between days by drag and drop', async () => {
     const { addTask, getTask, tasks } = useKanban();
     addTask({ text: 'Чтение', freq: 'daily' });

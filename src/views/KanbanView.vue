@@ -1,7 +1,15 @@
 <template>
   <div class="kb-view">
     <div class="kb-toolbar">
-      <div class="kb-title">{{ t('tasksTitle') }}</div>
+      <div class="kb-title-group">
+        <div class="kb-title">{{ t('tasksTitle') }}</div>
+        <div class="kb-stats" :title="t('tasksProgress')">
+          <div class="kb-progress">
+            <div class="kb-progress-fill" :style="{ width: progressPct + '%' }"></div>
+          </div>
+          <div class="kb-stats-text">{{ stats.done }} / {{ stats.total }}</div>
+        </div>
+      </div>
       <div class="kb-nav">
         <button class="kb-arrow" :title="t('tasksPrev')" :aria-label="t('tasksPrev')" @click="navigateWeek(-1)">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -18,16 +26,7 @@
           </svg>
         </button>
       </div>
-      <div class="kb-spacer"></div>
-      <div class="kb-stats" :title="t('tasksProgress')">
-        <div class="kb-progress">
-          <div class="kb-progress-fill" :style="{ width: progressPct + '%' }"></div>
-        </div>
-        <div class="kb-stats-text">{{ stats.done }} / {{ stats.total }}</div>
-      </div>
       <div class="kb-tools">
-        <button class="kb-tool-btn" @click="exportBackup">{{ t('tasksExport') }}</button>
-        <button class="kb-tool-btn" @click="importInput?.click()">{{ t('tasksImport') }}</button>
         <button class="kb-tool-btn primary" @click="openNewEditor(null)">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -35,7 +34,6 @@
           </svg>
           <span>{{ t('tasksAddTask') }}</span>
         </button>
-        <input ref="importInput" class="kb-file" type="file" accept="application/json" @change="onImportFile" />
       </div>
     </div>
 
@@ -105,28 +103,6 @@
                 <div class="kb-freq">{{ freqLabel(card.freq) }}</div>
               </div>
               <div class="kb-card-actions">
-                <button
-                  class="kb-move"
-                  :disabled="col.day === 1"
-                  :title="t('tasksPrevDay')"
-                  :aria-label="t('tasksPrevDay')"
-                  @click="moveOccurrence(card.taskId, card.day, card.day - 1)"
-                >
-                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6" />
-                  </svg>
-                </button>
-                <button
-                  class="kb-move"
-                  :disabled="col.day === 7"
-                  :title="t('tasksNextDay')"
-                  :aria-label="t('tasksNextDay')"
-                  @click="moveOccurrence(card.taskId, card.day, card.day + 1)"
-                >
-                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
                 <button
                   class="kb-edit"
                   :title="t('tasksEdit')"
@@ -241,8 +217,6 @@ const {
   occurrenceDates,
   moveOccurrence,
   weekStats,
-  exportData,
-  importData,
 } = useKanban();
 
 const week = ref(mondayOf(new Date()));
@@ -321,7 +295,6 @@ const dragTaskId = ref(null);
 const dragFromDay = ref(null);
 const dropDay = ref(null);
 
-const importInput = ref(null);
 const editor = ref(null);
 
 const editorSaveAllowed = computed(() => {
@@ -457,31 +430,6 @@ function onColumnDrop(day) {
   }
   clearDrag();
 }
-
-function exportBackup() {
-  const blob = new Blob([JSON.stringify(exportData(), null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `kanban-${dateKey(mondayOf(new Date()))}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function onImportFile(e) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      importData(JSON.parse(reader.result));
-    } catch {
-      /* ignore an invalid backup file */
-    }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-}
 </script>
 
 <style scoped>
@@ -510,6 +458,13 @@ function onImportFile(e) {
   -webkit-backdrop-filter: blur(16px);
   box-shadow: var(--shadow);
 }
+.kb-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  min-width: 0;
+}
 .kb-title {
   font-size: 15px;
   font-weight: 700;
@@ -517,6 +472,9 @@ function onImportFile(e) {
   white-space: nowrap;
 }
 .kb-nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -591,6 +549,7 @@ function onImportFile(e) {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 .kb-tool-btn {
   appearance: none;
@@ -619,9 +578,6 @@ function onImportFile(e) {
 }
 .kb-tool-btn.primary:hover {
   filter: brightness(1.08);
-}
-.kb-file {
-  display: none;
 }
 
 .kb-board-wrap {
@@ -805,7 +761,6 @@ function onImportFile(e) {
   gap: 2px;
   flex-shrink: 0;
 }
-.kb-move,
 .kb-edit {
   appearance: none;
   display: inline-flex;
@@ -821,17 +776,12 @@ function onImportFile(e) {
   cursor: pointer;
   transition: opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 }
-.kb-card:hover .kb-move,
 .kb-card:hover .kb-edit {
   opacity: 1;
 }
-.kb-move:hover:not(:disabled),
 .kb-edit:hover {
   background: var(--glass-hover);
   color: var(--text-primary);
-}
-.kb-move:disabled {
-  opacity: 0;
 }
 
 .kb-empty {
