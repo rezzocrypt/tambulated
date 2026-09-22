@@ -338,6 +338,34 @@ describe('KanbanView', () => {
     wrapper.unmount();
   });
 
+  it('lets choose the target calendar when adding an event with several calendars set', async () => {
+    const CAL2 = { href: '/cal/dflt2/', displayName: 'Второй календарь', component: 'VEVENT' };
+    setCalendars([CALENDAR, CAL2, TASKS_CALENDAR]);
+    const wrapper = await mountBoard([]);
+    await wrapper.find('.kb-tool-btn.primary').trigger('click');
+
+    const picker = wrapper.find('.kb-cal-pick');
+    expect(picker.exists()).toBe(true);
+    expect(wrapper.findAll('.kb-cal-pick option').map((o) => o.text())).toContain('Второй календарь');
+
+    await wrapper.findAll('.modal-input')[0].setValue('Спорт');
+    await wrapper.find('.kb-cal-pick').setValue('/cal/dflt2/');
+    await wrapper.find('.modal-btn.primary').trigger('click');
+    await flushAll();
+
+    const pushed = fetchCalls.filter((c) => c.method === 'PUT');
+    expect(pushed.length).toBe(1);
+    expect(pushed[0].url).toContain('/cal/dflt2/');
+    wrapper.unmount();
+  });
+
+  it('hides the calendar picker when only one events calendar is set', async () => {
+    const wrapper = await mountBoard([]);
+    await wrapper.find('.kb-tool-btn.primary').trigger('click');
+    expect(wrapper.find('.kb-cal-pick').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it('renders events and tasks from several calendars on one board', async () => {
     const CAL2 = { href: '/cal/dflt2/', displayName: 'Второй календарь', component: 'VEVENT' };
     const TASKS2 = { href: '/cal/tasks2/', displayName: 'Другой список', component: 'VTODO' };

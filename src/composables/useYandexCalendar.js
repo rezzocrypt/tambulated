@@ -324,7 +324,10 @@ function generateUid() {
 }
 
 export async function insertEvent(_calendarId, body) {
-  const cal = getCalendar();
+  const chosen = body.calendarHref
+    ? getCalendars().find((c) => c.href === body.calendarHref && c.component !== 'VTODO') || null
+    : null;
+  const cal = chosen || getCalendar();
   if (!cal?.href) throw new Error('KCAL_NO_CALENDAR');
   const uid = generateUid();
   const start = body.start || { date: dateKey(new Date()) };
@@ -351,7 +354,10 @@ export async function insertEvent(_calendarId, body) {
 }
 
 export async function insertTask(_calendarId, body) {
-  const cal = getTasksCalendar();
+  const chosen = body.calendarHref
+    ? getCalendars().find((c) => c.href === body.calendarHref && c.component === 'VTODO') || null
+    : null;
+  const cal = chosen || getTasksCalendar();
   if (!cal?.href) throw new Error('KCAL_NO_CALENDAR');
   const uid = generateUid();
   const start = body.start || null;

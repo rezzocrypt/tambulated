@@ -80,6 +80,7 @@ export default {
   tasksLoginLabel: 'Login (email address)',
   tasksAppPassword: 'App password',
   tasksCalendar: 'Events calendar',
+  tasksTargetCalendar: 'Calendar',
   tasksTasksCalendar: 'Tasks calendar',
   tasksKind: 'Type',
   tasksKindTask: 'Task',

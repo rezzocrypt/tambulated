@@ -263,6 +263,14 @@
             <button class="kb-freq-opt" :class="{ on: editor.kind === 'event' }" @click="editor.kind = 'event'">{{ t('tasksKindEvent') }}</button>
           </div>
         </div>
+        <div v-if="!editor.id && eventCalOptions.length > 1 && (editor.kind === 'event' || editor.freq !== 'once')">
+          <div class="kb-field-label">{{ t('tasksTargetCalendar') }}</div>
+          <select v-model="editor.calendarHref" class="modal-input kb-cal-pick">
+            <option v-for="cal in eventCalOptions" :key="cal.href" :value="cal.href">
+              {{ cal.displayName || cal.href }}
+            </option>
+          </select>
+        </div>
         <div v-if="editor.freq === 'once'">
           <div class="kb-field-label">{{ t('tasksDate') }}</div>
           <input v-model="editor.date" class="modal-input" type="date" />
@@ -415,6 +423,7 @@ const dates = computed(() => {
 
 onMounted(async () => {
   connected.value = await checkCalendarConnection();
+  refreshEventCals();
   document.addEventListener('visibilitychange', onVisibility);
 });
 
@@ -530,6 +539,7 @@ async function applyConnection() {
   );
   if (!selected.length) return;
   setCalendars(selected);
+  refreshEventCals();
   connectOpen.value = false;
   connected.value = true;
   await loadWeek(week.value);
@@ -595,6 +605,11 @@ const dropDay = ref(null);
 
 const editor = ref(null);
 const editorError = ref('');
+const eventCalOptions = ref([]);
+
+function refreshEventCals() {
+  eventCalOptions.value = getCalendars().filter((c) => c.component !== 'VTODO');
+}
 
 const editorSaveAllowed = computed(() => {
   const freq = editor.value?.freq;
@@ -622,6 +637,7 @@ function goToday() {
 }
 
 function openNewEditor(day) {
+  refreshEventCals();
   editor.value = {
     id: null,
     text: '',
@@ -631,6 +647,7 @@ function openNewEditor(day) {
     freq: day ? 'once' : 'daily',
     days: day ? [day] : [...ALL_DAYS],
     date: day ? dateKey(dates.value[day - 1]) : '',
+    calendarHref: eventCalOptions.value[0]?.href || '',
   };
   editorError.value = '';
   nextTick(() => {
@@ -651,6 +668,7 @@ function openTaskEditor(seriesId) {
     freq: ev.freq,
     days: [...ev.days],
     date: ev.freq === 'once' ? ev.dateStr : '',
+    calendarHref: '',
   };
   editorError.value = '';
 }
@@ -706,6 +724,10 @@ async function saveEditor() {
     days,
     date: freq === 'once' ? editor.value.date : '',
   };
+  if (!editor.value.id && kind === 'event') {
+    const calHref = editor.value.calendarHref || eventCalOptions.value[0]?.href || '';
+    if (calHref) payload.calendarHref = calHref;
+  }
   if (editor.value.id) {
     await updateTask(editor.value.id, payload);
   } else {

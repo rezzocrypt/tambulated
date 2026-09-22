@@ -80,6 +80,7 @@ export default {
   tasksLoginLabel: '邮箱地址',
   tasksAppPassword: '应用密码',
   tasksCalendar: '事件日历',
+  tasksTargetCalendar: '日历',
   tasksTasksCalendar: '任务日历',
   tasksKind: '类型',
   tasksKindTask: '任务',

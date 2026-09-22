@@ -287,7 +287,7 @@ export function useKanban() {
     return state.value.events.find((ev) => ev.seriesId === seriesId);
   }
 
-  async function addTask({ text, time = '', endTime = '', freq = 'daily', days = ALL_DAYS, date = '', kind = 'task' }) {
+  async function addTask({ text, time = '', endTime = '', freq = 'daily', days = ALL_DAYS, date = '', kind = 'task', calendarHref = '' }) {
     state.value = { ...state.value, saving: true };
     try {
       const f = FREQS.includes(freq) ? freq : 'daily';
@@ -301,6 +301,7 @@ export function useKanban() {
         end,
         recurrence: f === 'once' ? [] : [rruleFor(f, days)],
       };
+      if (calendarHref) body.calendarHref = calendarHref;
       if (kind === 'task') {
         await insertTask('primary', body);
       } else {

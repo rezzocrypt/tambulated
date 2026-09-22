@@ -80,6 +80,7 @@ export default {
   tasksLoginLabel: 'Логин (адрес почты)',
   tasksAppPassword: 'Пароль приложения',
   tasksCalendar: 'Календарь событий',
+  tasksTargetCalendar: 'Календарь',
   tasksTasksCalendar: 'Календарь задач',
   tasksKind: 'Тип',
   tasksKindTask: 'Задача',
