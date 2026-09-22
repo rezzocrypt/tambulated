@@ -12,129 +12,89 @@ import {
 import {
   FREQS,
   useKanban,
+  checkCalendarConnection,
   freqDays,
   rruleFor,
   parseRrule,
   occurrenceFromEvent,
 } from '../src/composables/useKanban.js';
-import { setCalendarToken, clearCalendarToken } from '../src/composables/useGoogleCalendar.js';
+import {
+  setAccount,
+  setCalendar,
+  setTasksCalendar,
+  clearAccount,
+} from '../src/composables/useYandexCalendar.js';
+import { createCalDavMock } from './caldavMock.js';
 
 const MON = new Date(2026, 0, 5); // Monday
+const ACCOUNT = { login: 'user@yandex.ru', password: 'app-password' };
+const CALENDAR = { href: '/cal/dflt/', displayName: 'Основной календарь' };
+const TASKS_CALENDAR = { href: '/cal/tasks/', displayName: 'Задачи', component: 'VTODO' };
 
 let mockEvents;
+let mocks;
 
-function timed(id, { summary = 'Task', date = '2026-01-05', start = '09:00', end = '10:00', recurrence, recurringEventId } = {}) {
+function timed(uid, { summary = 'Task', date = '2026-01-05', start = '09:00', end = '10:00', recurrence = '', href } = {}) {
   const ev = {
-    id,
+    uid,
     summary,
     start: { dateTime: `${date}T${start}:00` },
     end: { dateTime: `${date}T${end}:00` },
+    recurrence,
+    etag: '"e1"',
   };
-  if (recurrence) ev.recurrence = [recurrence];
-  if (recurringEventId) {
-    ev.recurringEventId = recurringEventId;
-    ev.originalStartTime = { dateTime: `${date}T${start}:00` };
-  }
+  ev.href = href || `/cal/dflt/${uid}.ics`;
   return ev;
 }
 
-function allDay(id, { summary = 'Task', date = '2026-01-05', recurrence, recurringEventId } = {}) {
+function allDay(uid, { summary = 'Task', date = '2026-01-05', recurrence = '' } = {}) {
   const next = new Date(parseDateKey(date));
   next.setDate(next.getDate() + 1);
-  const ev = {
-    id,
+  return {
+    uid,
     summary,
-    start: { date: date },
+    start: { date },
     end: { date: dateKey(next) },
+    recurrence,
+    etag: '"e1"',
+    href: `/cal/dflt/${uid}.ics`,
   };
-  if (recurrence) ev.recurrence = [recurrence];
-  if (recurringEventId) {
-    ev.recurringEventId = recurringEventId;
-    ev.originalStartTime = { date };
-  }
+}
+
+function dailyMaster(uid, summary, { from = '2026-01-05', start = '09:00', end = '10:00' } = {}) {
+  return timed(uid, { summary, date: from, start, end, recurrence: 'FREQ=DAILY' });
+}
+
+function todo(uid, { summary = 'Task', date = '', start = '', end = '', status = 'NEEDS-ACTION', recurrence = '' } = {}) {
+  const ev = {
+    uid,
+    summary,
+    status,
+    recurrence,
+    etag: '"e2"',
+    href: `/cal/tasks/${uid}.ics`,
+    kind: 'VTODO',
+  };
+  if (start) ev.start = { dateTime: `${date}T${start}:00` };
+  else if (date) ev.start = { date };
+  if (end) ev.due = { dateTime: `${date}T${end}:00` };
   return ev;
-}
-
-function dailySeries(id, summary, { from = '2026-01-05', count = 1, start = '09:00', end = '10:00' } = {}) {
-  const master = timed(id, { summary, date: from, start, end, recurrence: 'FREQ=DAILY' });
-  const out = [master];
-  const base = parseDateKey(from);
-  for (let i = 1; i < count; i += 1) {
-    const d = addDays(base, i);
-    out.push(timed(`${id}-${i}`, {
-      summary,
-      date: dateKey(d),
-      start,
-      end,
-      recurringEventId: id,
-    }));
-  }
-  return out;
-}
-
-function jsonResponse(body) {
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-async function mockApi(url, opts = {}) {
-  const method = opts.method || 'GET';
-  const token = localStorage.getItem('gcal-token');
-  expect(opts.headers?.Authorization).toBe(`Bearer ${token}`);
-
-  if (method === 'GET' && url.includes('/events?')) {
-    const params = new URLSearchParams(url.split('?')[1]);
-    const min = params.get('timeMin').slice(0, 10);
-    const max = params.get('timeMax').slice(0, 10);
-    const items = mockEvents.filter((ev) => {
-      const date = ev.start?.date ? ev.start.date.slice(0, 10) : ev.start?.dateTime?.slice(0, 10) || '';
-      const orig = ev.originalStartTime?.date
-        ? ev.originalStartTime.date.slice(0, 10)
-        : ev.originalStartTime?.dateTime?.slice(0, 10);
-      const d = orig || date;
-      return d >= min && d <= max;
-    });
-    return jsonResponse({ items });
-  }
-  if (method === 'GET') {
-    const id = decodeURIComponent(url.split('/').pop());
-    const ev = mockEvents.find((e) => e.id === id) || mockEvents.find((e) => e.recurringEventId === id && !e.recurringEventId);
-    return jsonResponse(ev || {});
-  }
-  if (method === 'POST') {
-    const body = JSON.parse(opts.body);
-    const event = { id: `gen-${mockEvents.length + 1}`, ...body };
-    mockEvents.push(event);
-    return jsonResponse(event);
-  }
-  if (method === 'PATCH') {
-    const id = decodeURIComponent(url.split('/').pop());
-    const body = JSON.parse(opts.body);
-    const idx = mockEvents.findIndex((e) => e.id === id);
-    if (idx >= 0) mockEvents[idx] = { ...mockEvents[idx], ...body };
-    return jsonResponse(mockEvents[idx]);
-  }
-  if (method === 'DELETE') {
-    const id = decodeURIComponent(url.split('/').pop());
-    mockEvents = mockEvents.filter((e) => e.id !== id && e.recurringEventId !== id);
-    return new Response(null, { status: 204 });
-  }
-  return jsonResponse({});
 }
 
 beforeEach(() => {
   localStorage.clear();
-  localStorage.setItem('gcal-token', 'TEST_TOKEN');
+  setAccount(ACCOUNT.login, ACCOUNT.password);
+  setCalendar(CALENDAR);
+  setTasksCalendar(TASKS_CALENDAR);
   mockEvents = [];
-  vi.stubGlobal('fetch', mockApi);
+  mocks = createCalDavMock({ account: ACCOUNT, calendars: [CALENDAR, TASKS_CALENDAR], events: mockEvents });
+  vi.stubGlobal('fetch', mocks.handler);
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  clearCalendarToken();
-  localStorage.removeItem('kanban-done');
+  clearAccount();
+  localStorage.clear();
 });
 
 describe('week date utils', () => {
@@ -201,8 +161,8 @@ describe('rrule round trip', () => {
 });
 
 describe('useKanban store', () => {
-  it('loads occurrences for the week from the calendar', async () => {
-    mockEvents = dailySeries('s1', 'Brush teeth', { count: 7 });
+  it('loads occurrences for the week from the calendar by expanding the master', async () => {
+    mockEvents.push(dailyMaster('s1', 'Brush teeth'));
     const { events, status, loadWeek } = useKanban();
     await loadWeek(MON);
     expect(status.value).toBe('ready');
@@ -211,13 +171,8 @@ describe('useKanban store', () => {
     expect(events.value[6]).toMatchObject({ day: 7, dateStr: '2026-01-11' });
   });
 
-  it('inherits recurrence info on instances that omit it', async () => {
-    const master = timed('s2', { summary: 'Yoga', date: '2026-01-05', recurrence: 'FREQ=WEEKLY;BYDAY=MO,WE,FR', start: '08:00', end: '09:00' });
-    mockEvents = [
-      master,
-      timed('s2-1', { summary: 'Yoga', date: '2026-01-07', start: '08:00', end: '09:00', recurringEventId: 's2' }),
-      timed('s2-2', { summary: 'Yoga', date: '2026-01-09', start: '08:00', end: '09:00', recurringEventId: 's2' }),
-    ];
+  it('expands a weekly custom series onto its weekdays', async () => {
+    mockEvents.push(timed('s2', { summary: 'Yoga', date: '2026-01-05', start: '08:00', end: '09:00', recurrence: 'FREQ=WEEKLY;BYDAY=MO,WE,FR' }));
     const { events, loadWeek } = useKanban();
     await loadWeek(MON);
     const days = events.value.map((ev) => ev.day);
@@ -228,27 +183,22 @@ describe('useKanban store', () => {
     }
   });
 
-  it('resolves an out-of-window series via the master fetch', async () => {
-    const startFromPrevMonth = '2025-12-29';
-    mockEvents = [
-      timed('legacy-occ', { summary: 'Old series', date: '2026-01-05', start: '07:00', end: '08:00', recurringEventId: 'legacy' }),
-    ];
-    const realFetch = mockApi;
-    const getEventSpy = vi.fn(async (url, opts) => {
-      if (url.includes('/legacy')) {
-        return jsonResponse(timed('legacy', { summary: 'Old series', date: startFromPrevMonth, recurrence: 'FREQ=WEEKLY;BYDAY=MO', start: '07:00', end: '08:00' }));
-      }
-      return realFetch(url, opts);
-    });
-    vi.stubGlobal('fetch', getEventSpy);
+  it('includes a recurring master that started before the shown week', async () => {
+    mockEvents.push(timed('s3', { summary: 'Old daily', date: '2025-12-29', recurrence: 'FREQ=DAILY' }));
     const { events, loadWeek } = useKanban();
     await loadWeek(MON);
-    expect(events.value[0].freq).toBe('custom');
-    expect(events.value[0].days).toEqual([1]);
+    expect(events.value).toHaveLength(7);
+    expect(events.value[0]).toMatchObject({ day: 1, dateStr: '2026-01-05' });
+  });
+
+  it('checks connection as configured account and calendar', async () => {
+    expect(await checkCalendarConnection()).toBe(true);
+    clearAccount();
+    expect(await checkCalendarConnection()).toBe(false);
   });
 
   it('toggles done state locally without touching the calendar', async () => {
-    mockEvents = dailySeries('s1', 'Run', { count: 1 });
+    mockEvents.push(dailyMaster('s1', 'Run'));
     const { events, loadWeek, toggleDone, isDone } = useKanban();
     await loadWeek(MON);
     const series = events.value[0].seriesId;
@@ -258,13 +208,14 @@ describe('useKanban store', () => {
     expect(isDone(series, '2026-01-05')).toBe(false);
   });
 
-  it('creates a recurring event via POST and reflects it on the board', async () => {
+  it('creates a recurring event via PUT and reflects it on the board', async () => {
     const { events, loadWeek, addTask } = useKanban();
     await loadWeek(MON);
-    await addTask({ text: 'Drink water', freq: 'daily', time: '09:00', endTime: '09:30' });
+    await addTask({ text: 'Drink water', kind: 'event', freq: 'daily', time: '09:00', endTime: '09:30' });
     const created = mockEvents.find((e) => e.summary === 'Drink water');
     expect(created).toBeDefined();
-    expect(created.recurrence).toEqual(['FREQ=DAILY']);
+    expect(created.kind).toBe('VEVENT');
+    expect(created.recurrence).toBe('FREQ=DAILY');
     expect(created.start.dateTime.startsWith('2026-01-05T09:00')).toBe(true);
     expect(created.end.dateTime).toBe('2026-01-05T09:30:00');
     expect(events.value.some((ev) => ev.text === 'Drink water')).toBe(true);
@@ -273,76 +224,132 @@ describe('useKanban store', () => {
   it('creates an all-day once event on the exact date', async () => {
     const { loadWeek, addTask } = useKanban();
     await loadWeek(MON);
-    await addTask({ text: 'Trip', freq: 'once', date: '2026-03-15' });
+    await addTask({ text: 'Trip', kind: 'event', freq: 'once', date: '2026-03-15' });
     const created = mockEvents.find((e) => e.summary === 'Trip');
     expect(created.start).toEqual({ date: '2026-03-15' });
-    expect(created.recurrence).toEqual([]);
+    expect(created.recurrence).toBe('');
+  });
+
+  it('creates a task in the tasks calendar by default as VTODO', async () => {
+    const { events, loadWeek, addTask } = useKanban();
+    await loadWeek(MON);
+    await addTask({ text: 'Продукты', freq: 'once', date: '2026-01-06', time: '11:00', endTime: '12:00' });
+    const created = mockEvents.find((e) => e.summary === 'Продукты');
+    expect(created).toBeDefined();
+    expect(created.kind).toBe('VTODO');
+    expect(created.start.dateTime).toBe('2026-01-06T11:00:00');
+    expect(created.due.dateTime).toBe('2026-01-06T12:00:00');
+    expect(events.value.some((ev) => ev.text === 'Продукты' && ev.task)).toBe(true);
+  });
+
+  it('creates an undated once task with no DTSTART', async () => {
+    const { events, loadWeek, addTask } = useKanban();
+    await loadWeek(MON);
+    await addTask({ text: 'Open task', kind: 'task', freq: 'once', date: '' });
+    const created = mockEvents.find((e) => e.summary === 'Open task');
+    expect(created).toBeDefined();
+    expect(created.kind).toBe('VTODO');
+    expect(created.start).toBeNull();
+    const board = events.value.find((ev) => ev.text === 'Open task');
+    expect(board).toMatchObject({ day: 0, undated: true, task: true });
+  });
+
+  it('loads dated and undated tasks alongside events', async () => {
+    mockEvents.push(timed('e1', { summary: 'Meet' }));
+    mockEvents.push(todo('t1', { summary: 'Dated task', date: '2026-01-07', start: '14:00' }));
+    mockEvents.push(todo('t2', { summary: 'Open task' }));
+    const { events, loadWeek } = useKanban();
+    await loadWeek(MON);
+    const tasks = events.value.filter((ev) => ev.task);
+    expect(tasks).toHaveLength(2);
+    const dated = tasks.find((ev) => ev.text === 'Dated task');
+    expect(dated).toMatchObject({ day: 3, time: '14:00', task: true });
+    const open = tasks.find((ev) => ev.text === 'Open task');
+    expect(open).toMatchObject({ day: 0, undated: true });
+  });
+
+  it('toggles a task done and persists STATUS to the tasks calendar', async () => {
+    mockEvents.push(todo('t1', { summary: 'Pay bills' }));
+    const { loadWeek, toggleDone, isDone, events } = useKanban();
+    await loadWeek(MON);
+    await toggleDone('t1', '');
+    expect(isDone('t1', '')).toBe(true);
+    const rec = mockEvents.find((e) => e.uid === 't1');
+    expect(rec.status).toBe('COMPLETED');
+    await loadWeek(MON);
+    expect(isDone('t1', '')).toBe(true);
+  });
+
+  it('moves an undated task onto a day', async () => {
+    mockEvents.push(todo('t1', { summary: 'Call mom' }));
+    const { loadWeek, moveOccurrence } = useKanban();
+    await loadWeek(MON);
+    await moveOccurrence('t1', 0, 2);
+    const patched = mockEvents.find((e) => e.uid === 't1');
+    expect(patched.start.date).toBe('2026-01-06');
   });
 
   it('patches a recurring task into custom days', async () => {
-    mockEvents = dailySeries('s1', 'Daily', { count: 1 });
+    mockEvents.push(dailyMaster('s1', 'Daily'));
     const { loadWeek, updateTask, events } = useKanban();
     await loadWeek(MON);
     await updateTask('s1', { text: 'Daily', freq: 'custom', days: [1, 2, 4], time: '09:00', endTime: '' });
-    const patched = mockEvents.find((e) => e.id === 's1');
-    expect(patched.recurrence).toEqual(['FREQ=WEEKLY;BYDAY=MO,TU,TH']);
+    const patched = mockEvents.find((e) => e.uid === 's1');
+    expect(patched.recurrence).toBe('FREQ=WEEKLY;BYDAY=MO,TU,TH');
     expect(patched.summary).toBe('Daily');
     expect(events.value.length).toBeGreaterThanOrEqual(1);
   });
 
   it('moves a once occurrence to another day keeping its time', async () => {
-    mockEvents = [timed('once1', { summary: 'Once', date: '2026-01-07', start: '11:00', end: '12:00' })];
+    mockEvents.push(timed('once1', { summary: 'Once', date: '2026-01-07', start: '11:00', end: '12:00' }));
     const { loadWeek, moveOccurrence } = useKanban();
     await loadWeek(MON);
     const moved = await moveOccurrence('once1', 3, 5);
     expect(moved).toBeTruthy();
-    const patched = mockEvents.find((e) => e.id === 'once1');
+    const patched = mockEvents.find((e) => e.uid === 'once1');
     expect(patched.start.dateTime).toBe('2026-01-09T11:00:00');
   });
 
   it('moves a recurring occurrence and degrades to custom days', async () => {
-    mockEvents = dailySeries('s1', 'Daily', { count: 2 });
+    mockEvents.push(dailyMaster('s1', 'Daily'));
     const { loadWeek, moveOccurrence } = useKanban();
     await loadWeek(MON);
     await moveOccurrence('s1', 2, 5);
-    const patched = mockEvents.find((e) => e.id === 's1');
-    expect(patched.recurrence).toEqual(['FREQ=WEEKLY;BYDAY=MO,WE,TH,FR,SA,SU']);
+    const patched = mockEvents.find((e) => e.uid === 's1');
+    expect(patched.recurrence).toBe('FREQ=WEEKLY;BYDAY=MO,WE,TH,FR,SA,SU');
   });
 
   it('ignores no-op moves', async () => {
-    mockEvents = [timed('once1', { summary: 'Once', date: '2026-01-07' })];
+    mockEvents.push(timed('once1', { summary: 'Once', date: '2026-01-07' }));
     const { loadWeek, moveOccurrence } = useKanban();
     await loadWeek(MON);
     expect(await moveOccurrence('once1', 3, 3)).toBe(false);
   });
 
   it('deletes an event and cleans its done entries', async () => {
-    mockEvents = dailySeries('s1', 'Read', { count: 7 });
+    mockEvents.push(dailyMaster('s1', 'Read'));
     const { loadWeek, removeTask, toggleDone } = useKanban();
     await loadWeek(MON);
     toggleDone('s1', '2026-01-05');
-    expect(mockEvents.some((e) => e.id === 's1')).toBe(true);
+    expect(mockEvents.some((e) => e.uid === 's1')).toBe(true);
     await removeTask('s1');
-    expect(mockEvents.some((e) => e.id === 's1' || e.recurringEventId === 's1')).toBe(false);
+    expect(mockEvents.some((e) => e.uid === 's1')).toBe(false);
   });
 
   it('computes week stats counting done occurrences', async () => {
-    mockEvents = [
-      ...dailySeries('d1', 'Daily', { count: 1 }),
-      timed('o1', { summary: 'Once', date: '2026-01-09', start: '09:00', end: '10:00' }),
-    ];
+    mockEvents.push(timed('o1', { summary: 'A', date: '2026-01-05' }), timed('o2', { summary: 'B', date: '2026-01-06' }));
     const { loadWeek, toggleDone, weekStats } = useKanban();
     await loadWeek(MON);
-    toggleDone('d1', '2026-01-05');
+    toggleDone('o1', '2026-01-05');
     expect(weekStats()).toEqual({ done: 1, total: 2 });
   });
 
-  it('rejects the board when no token is configured', async () => {
-    localStorage.removeItem('gcal-token');
+  it('rejects the board when no account is configured', async () => {
+    clearAccount();
     const { status, loadWeek, error } = useKanban();
     await loadWeek(MON);
     expect(status.value).toBe('error');
-    expect(error.value).toBe('KCAL_NO_TOKEN');
+    expect(error.value).toBe('KCAL_NO_ACCOUNT');
   });
 
   it('exposes the known frequency presets', () => {
@@ -352,5 +359,10 @@ describe('useKanban store', () => {
   it('parses a single event occurrence', () => {
     const ev = occurrenceFromEvent(timed('x', { summary: 'Meet', date: '2026-01-06', start: '10:30', end: '11:00' }));
     expect(ev).toMatchObject({ seriesId: 'x', time: '10:30', endTime: '11:00', day: 2, freq: 'once' });
+  });
+
+  it('parses an all-day occurrence', () => {
+    const ev = occurrenceFromEvent(allDay('x', { date: '2026-01-06' }));
+    expect(ev).toMatchObject({ seriesId: 'x', time: '', endTime: '', day: 2, freq: 'once', allDay: true });
   });
 });

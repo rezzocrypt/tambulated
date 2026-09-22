@@ -27,7 +27,7 @@
         </button>
       </div>
       <div class="kb-tools">
-        <button v-if="!connected" class="kb-tool-btn" :title="t('tasksAuthHint')" @click="connectCalendar">
+        <button v-if="!connected" class="kb-tool-btn" :title="t('tasksAuthHint')" @click="openConnect">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="11" width="18" height="10" rx="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -51,6 +51,12 @@
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
           <span>{{ t('tasksAddTask') }}</span>
+        </button>
+        <button v-if="connected" class="kb-tool-btn kb-tool-gear" :title="t('tasksSettings')" :aria-label="t('tasksSettings')" @click="openSettings">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
         </button>
       </div>
     </div>
@@ -105,6 +111,7 @@
                 </svg>
               </span>
               <button
+                v-if="card.task"
                 class="kb-done"
                 :class="{ on: card.done }"
                 :aria-pressed="card.done"
@@ -132,6 +139,63 @@
                   </svg>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="status === 'ready' && undatedCards.length" class="kb-undated">
+        <div class="kb-undated-title">{{ t('tasksNoDate') }}</div>
+        <div class="kb-undated-list">
+          <div
+            v-for="card in undatedCards"
+            :key="`u:${card.seriesId}`"
+            class="kb-card"
+            :class="{ done: card.done }"
+          >
+            <span
+              class="kb-grip"
+              draggable="true"
+              :title="t('tasksDrag')"
+              :aria-label="t('tasksDrag')"
+              @dragstart="onDragStart(card.seriesId, card.day)"
+              @dragend="clearDrag"
+            >
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="9" cy="6" r="1.4" />
+                <circle cx="15" cy="6" r="1.4" />
+                <circle cx="9" cy="12" r="1.4" />
+                <circle cx="15" cy="12" r="1.4" />
+                <circle cx="9" cy="18" r="1.4" />
+                <circle cx="15" cy="18" r="1.4" />
+              </svg>
+            </span>
+            <button
+              v-if="card.task"
+              class="kb-done"
+              :class="{ on: card.done }"
+              :aria-pressed="card.done"
+              :aria-label="`${card.text}`"
+              @click="toggleDone(card.seriesId, card.dateStr)"
+            >
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </button>
+            <div class="kb-card-main">
+              <div class="kb-text">{{ card.text }}</div>
+              <div class="kb-freq">{{ freqLabel(card.freq) }}</div>
+            </div>
+            <div class="kb-card-actions">
+              <button
+                class="kb-edit"
+                :title="t('tasksEdit')"
+                :aria-label="`${t('tasksEdit')}: ${card.text}`"
+                @click="openTaskEditor(card.seriesId)"
+              >
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -191,6 +255,14 @@
             </button>
           </div>
         </div>
+        <div v-if="!editor.id && editor.kind === 'task' && editor.freq !== 'once'" class="kb-kind-note">{{ t('tasksRepeatNote') }}</div>
+        <div v-if="!editor.id">
+          <div class="kb-field-label">{{ t('tasksKind') }}</div>
+          <div class="kb-freq-pick">
+            <button class="kb-freq-opt" :class="{ on: editor.kind === 'task' }" @click="editor.kind = 'task'">{{ t('tasksKindTask') }}</button>
+            <button class="kb-freq-opt" :class="{ on: editor.kind === 'event' }" @click="editor.kind = 'event'">{{ t('tasksKindEvent') }}</button>
+          </div>
+        </div>
         <div v-if="editor.freq === 'once'">
           <div class="kb-field-label">{{ t('tasksDate') }}</div>
           <input v-model="editor.date" class="modal-input" type="date" />
@@ -209,6 +281,7 @@
             </button>
           </div>
         </div>
+        <div v-if="editorError" class="kb-conn-error">{{ editorError }}</div>
         <div class="modal-actions">
           <button v-if="editor.id" class="modal-btn danger" :disabled="saving" @click="deleteEditorTask">{{ t('delete') }}</button>
           <span class="kb-spacer"></span>
@@ -223,14 +296,61 @@
         </div>
       </div>
     </div>
+
+    <div v-if="connectOpen" class="modal-overlay" @click.self="connectOpen = false">
+      <div class="modal">
+        <div class="modal-title">{{ settingsMode ? t('tasksSettings') : t('tasksConnect') }}</div>
+        <p v-if="!settingsMode" class="kb-conn-hint">{{ t('tasksAuthHint') }}</p>
+        <p v-else class="kb-conn-hint">{{ t('tasksSettingsHint') }}</p>
+        <div v-if="settingsMode" class="kb-conn-account">
+          <span class="kb-conn-login-text">{{ connectLogin }}</span>
+          <button class="modal-btn danger" @click="logoutAccount">{{ t('tasksLogout') }}</button>
+        </div>
+        <template v-else>
+          <input v-model="connectLogin" class="modal-input kb-conn-login" type="text" :placeholder="t('tasksLoginLabel')" />
+          <input v-model="connectPassword" class="modal-input kb-conn-pass" type="password" :placeholder="t('tasksAppPassword')" />
+        </template>
+        <div v-if="connectError" class="kb-conn-error">{{ connectError }}</div>
+        <div v-if="eventsCalendars.length">
+          <div class="kb-field-label">{{ t('tasksCalendar') }}</div>
+          <select v-model="selectedCalendarHref" class="modal-input kb-conn-cal">
+            <option v-for="cal in eventsCalendars" :key="cal.href" :value="cal.href">{{ cal.displayName }}</option>
+          </select>
+        </div>
+        <div v-if="tasksCalendars.length">
+          <div class="kb-field-label">{{ t('tasksTasksCalendar') }}</div>
+          <select v-model="selectedTasksCalendarHref" class="modal-input kb-conn-tasks">
+            <option value="">{{ t('tasksNoTasksCalendar') }}</option>
+            <option v-for="cal in tasksCalendars" :key="cal.href" :value="cal.href">{{ cal.displayName }}</option>
+          </select>
+        </div>
+        <div v-else-if="connectChecked" class="kb-conn-empty">{{ t('tasksNoCalendars') }}</div>
+        <div class="modal-actions">
+          <button class="modal-btn" @click="connectOpen = false">{{ t('cancel') }}</button>
+          <button
+            v-if="!availCalendars.length"
+            class="modal-btn primary"
+            :disabled="!canCheckConnect"
+            @click="loadCalendars"
+          >
+            <span v-if="connectChecking" class="kb-spin"></span>
+            <span>{{ t('tasksCheck') }}</span>
+          </button>
+          <button v-else class="modal-btn primary" :disabled="!selectedCalendarHref" @click="applyConnection">
+            {{ settingsMode ? t('tasksSave') : t('tasksConnectNow') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useLocale } from '@/composables/useLocale.js';
 import { ALL_DAYS, DAY_NAMES_KEY, dateKey, mondayOf, parseDateKey, shiftWeek, weekdayNum } from '@/utils/week.js';
-import { FREQS, useKanban, checkCalendarConnection } from '@/composables/useKanban.js';
+import { discoverCalendars, getAccount, getStoredAccount, setAccount, setCalendar, setTasksCalendar, hasTasksCalendar, logout } from '@/composables/useYandexCalendar.js';
+import { FREQS, useKanban, checkCalendarConnection, reloadKanban } from '@/composables/useKanban.js';
 
 const { t, toLocaleString } = useLocale();
 const {
@@ -250,6 +370,25 @@ const {
 } = useKanban();
 
 const connected = ref(false);
+const connectOpen = ref(false);
+const settingsMode = ref(false);
+const connectLogin = ref('');
+const connectPassword = ref('');
+const availCalendars = ref([]);
+const selectedCalendarHref = ref('');
+const selectedTasksCalendarHref = ref('');
+const connectChecked = ref(false);
+const connectChecking = ref(false);
+const connectError = ref('');
+const canCheckConnect = computed(
+  () =>
+    !!connectLogin.value.trim() &&
+    !connectChecking.value &&
+    (!!connectPassword.value || !!getStoredAccount()?.password),
+);
+
+const eventsCalendars = computed(() => availCalendars.value.filter((cal) => cal.component !== 'VTODO'));
+const tasksCalendars = computed(() => availCalendars.value.filter((cal) => cal.component === 'VTODO'));
 
 const week = ref(mondayOf(new Date()));
 const todayKey = dateKey(new Date());
@@ -259,7 +398,18 @@ const dates = computed(() => {
 
 onMounted(async () => {
   connected.value = await checkCalendarConnection();
+  document.addEventListener('visibilitychange', onVisibility);
 });
+
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', onVisibility);
+});
+
+function onVisibility() {
+  if (document.visibilityState === 'visible' && connected.value && status.value !== 'loading') {
+    reloadWeek();
+  }
+}
 
 watch(week, (monday) => {
   loadWeek(monday);
@@ -282,11 +432,76 @@ const weekLabel = computed(() => {
   return `${fmt(first, true)} – ${fmt(last, true)}`;
 });
 
-async function connectCalendar() {
-  connected.value = await checkCalendarConnection(true);
-  if (connected.value) {
-    await loadWeek(week.value);
+function openConnect() {
+  settingsMode.value = false;
+  connectPassword.value = '';
+  availCalendars.value = [];
+  selectedCalendarHref.value = '';
+  selectedTasksCalendarHref.value = '';
+  connectChecked.value = false;
+  connectError.value = '';
+  const acc = getAccount();
+  connectLogin.value = acc?.login || '';
+  connectOpen.value = true;
+}
+
+async function openSettings() {
+  if (!getAccount()) {
+    openConnect();
+    return;
   }
+  settingsMode.value = true;
+  const acc = getStoredAccount();
+  connectLogin.value = acc?.login || '';
+  connectPassword.value = acc?.password || '';
+  availCalendars.value = [];
+  selectedCalendarHref.value = '';
+  selectedTasksCalendarHref.value = '';
+  connectChecked.value = false;
+  connectError.value = '';
+  connectOpen.value = true;
+  await loadCalendars();
+}
+
+function logoutAccount() {
+  logout();
+  reloadKanban();
+  connected.value = false;
+  connectOpen.value = false;
+  openConnect();
+}
+
+async function loadCalendars() {
+  connectChecking.value = true;
+  connectError.value = '';
+  try {
+    const acc = getStoredAccount();
+    const password = connectPassword.value || acc?.password || '';
+    setAccount(connectLogin.value.trim(), password);
+    const calendars = await discoverCalendars();
+    availCalendars.value = calendars;
+    connectChecked.value = true;
+    const current = eventsCalendars.value[0] || calendars[0];
+    selectedCalendarHref.value = current?.href || '';
+    selectedTasksCalendarHref.value = tasksCalendars.value[0]?.href || '';
+  } catch (err) {
+    console.log(err);
+    connectError.value = err?.message === 'KCAL_AUTH_FAILED' ? t('tasksIncorrectCreds') : t('tasksCalError');
+    availCalendars.value = [];
+  } finally {
+    connectChecking.value = false;
+  }
+}
+
+async function applyConnection() {
+  const calendar = availCalendars.value.find((cal) => cal.href === selectedCalendarHref.value);
+  if (!calendar) return;
+  setCalendar(calendar);
+  const tasksCal = availCalendars.value.find((cal) => cal.href === selectedTasksCalendarHref.value);
+  setTasksCalendar(tasksCal || null);
+  connectOpen.value = false;
+  connected.value = true;
+  await loadWeek(week.value);
 }
 
 function timeRank(time) {
@@ -306,11 +521,22 @@ const cards = computed(() => {
       endTime: ev.endTime || '',
       text: ev.text,
       freq: ev.freq,
+      task: ev.task,
       done: isDone(ev.seriesId, ev.dateStr),
     });
   }
   return out.sort((a, b) => timeRank(a.time) - timeRank(b.time) || a.text.localeCompare(b.text));
 });
+
+const undatedCards = computed(() => events.value.filter((ev) => ev.day === 0).map((ev) => ({
+  seriesId: ev.seriesId,
+  dateStr: ev.dateStr,
+  day: ev.day,
+  text: ev.text,
+  freq: ev.freq,
+  task: ev.task,
+  done: isDone(ev.seriesId, ev.dateStr),
+})));
 
 function timeRange(card) {
   return [card.time, card.endTime].filter(Boolean).join(' – ');
@@ -318,7 +544,9 @@ function timeRange(card) {
 
 const columns = computed(() => {
   const grouped = Object.fromEntries(ALL_DAYS.map((day) => [day, []]));
-  for (const card of cards.value) grouped[card.day].push(card);
+  for (const card of cards.value) {
+    if (grouped[card.day]) grouped[card.day].push(card);
+  }
   return ALL_DAYS.map((day) => ({
     day,
     dateNum: dates.value[day - 1].getDate(),
@@ -335,10 +563,11 @@ const dragFromDay = ref(null);
 const dropDay = ref(null);
 
 const editor = ref(null);
+const editorError = ref('');
 
 const editorSaveAllowed = computed(() => {
   const freq = editor.value?.freq;
-  if (freq === 'once') return !!editor.value.date;
+  if (freq === 'once') return editor.value.kind === 'task' ? true : !!editor.value.date;
   if (freq === 'custom') return editor.value.days.length > 0;
   return true;
 });
@@ -365,12 +594,14 @@ function openNewEditor(day) {
   editor.value = {
     id: null,
     text: '',
+    kind: 'task',
     time: '',
     endTime: '',
     freq: day ? 'once' : 'daily',
     days: day ? [day] : [...ALL_DAYS],
     date: day ? dateKey(dates.value[day - 1]) : '',
   };
+  editorError.value = '';
   nextTick(() => {
     const input = document.querySelector('.kb-view .modal-input');
     input?.focus();
@@ -383,12 +614,14 @@ function openTaskEditor(seriesId) {
   editor.value = {
     id: ev.seriesId,
     text: ev.text,
+    kind: ev.task ? 'task' : 'event',
     time: ev.time || '',
     endTime: ev.endTime || '',
     freq: ev.freq,
     days: [...ev.days],
     date: ev.freq === 'once' ? ev.dateStr : '',
   };
+  editorError.value = '';
 }
 
 function setEditorFreq(freq) {
@@ -413,6 +646,15 @@ async function saveEditor() {
   const text = editor.value.text.trim();
   if (!text || !editorSaveAllowed.value) return;
   const freq = editor.value.freq;
+  const kind = freq === 'once' ? (editor.value.kind || 'task') : 'event';
+  if (kind === 'task' && !hasTasksCalendar()) {
+    editorError.value = t('tasksNeedTasksCalendar');
+    return;
+  }
+  if (kind === 'event' && !connected.value) {
+    editorError.value = t('tasksNeedConnect');
+    return;
+  }
   let days;
   if (freq === 'daily') {
     days = [...ALL_DAYS];
@@ -426,6 +668,7 @@ async function saveEditor() {
   }
   const payload = {
     text,
+    kind,
     time: editor.value.time,
     endTime: editor.value.endTime,
     freq,
@@ -611,6 +854,9 @@ function onColumnDrop(day) {
 .kb-tool-btn.primary:hover {
   filter: brightness(1.08);
 }
+.kb-tool-btn.kb-tool-gear {
+  padding: 7px 9px;
+}
 .kb-tool-btn:disabled {
   opacity: 0.55;
   cursor: default;
@@ -634,11 +880,14 @@ function onColumnDrop(day) {
   position: relative;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .kb-board {
   display: flex;
   gap: 10px;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-x: auto;
   padding: 14px;
   background: var(--glass-bg);
@@ -716,6 +965,31 @@ function onColumnDrop(day) {
   flex-direction: column;
   gap: 8px;
   padding: 10px;
+}
+
+.kb-undated {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.kb-undated-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.kb-undated-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.kb-undated-list .kb-card {
+  flex: 1 1 220px;
 }
 
 .kb-card {
@@ -902,6 +1176,23 @@ function onColumnDrop(day) {
   font-weight: 700;
   color: var(--text-primary);
 }
+.kb-conn-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.kb-conn-error,
+.kb-conn-empty {
+  font-size: 12px;
+  color: var(--danger);
+}
+.kb-conn-empty {
+  color: var(--text-secondary);
+}
+.kb-conn-cal {
+  display: block;
+}
 .modal-input {
   width: 100%;
   padding: 10px 14px;
@@ -925,6 +1216,22 @@ function onColumnDrop(day) {
   letter-spacing: 0.06em;
   color: var(--text-secondary);
   margin-bottom: 6px;
+}
+.kb-conn-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 420px;
+}
+.kb-conn-login-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 7px 0;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 .kb-freq-pick {
   display: flex;
@@ -979,6 +1286,10 @@ function onColumnDrop(day) {
   background: var(--accent);
   border-color: transparent;
   color: #ffffff;
+}
+.kb-kind-note {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 .modal-actions {
   display: flex;

@@ -1,54 +1,28 @@
 import { ref, computed } from 'vue';
 import { ALL_DAYS, addDays, dateKey, mondayOf, parseDateKey, weekdayNum } from '@/utils/week.js';
 import {
-  getCalendarToken,
+  hasAccount,
+  hasCalendar,
+  hasTasksCalendar,
   listEvents,
+  listTasks,
+  resetUidMeta,
   getEvent,
+  getTask,
   insertEvent,
+  insertTask,
   patchEvent,
+  patchTask,
   deleteEvent,
-} from '@/composables/useGoogleCalendar.js';
+  deleteTask,
+} from '@/composables/useYandexCalendar.js';
+import { freqDays, rruleFor, parseRrule } from '@/composables/caldavData.js';
+
+export { freqDays, rruleFor, parseRrule };
 
 const DONE_KEY = 'kanban-done';
 
 export const FREQS = ['once', 'daily', 'weekdays', 'custom'];
-
-export const BYDAY = { 1: 'MO', 2: 'TU', 3: 'WE', 4: 'TH', 5: 'FR', 6: 'SA', 7: 'SU' };
-const BYDAY_NUM = Object.fromEntries(Object.entries(BYDAY).map(([n, s]) => [s, Number(n)]));
-
-export function freqDays(task) {
-  if (task?.freq === 'daily') return [...ALL_DAYS];
-  if (task?.freq === 'weekdays') return [1, 2, 3, 4, 5];
-  const days = Array.isArray(task?.days) ? task.days : [];
-  return ALL_DAYS.filter((day) => days.includes(day)).sort((a, b) => a - b);
-}
-
-export function rruleFor(freq, days) {
-  if (freq === 'daily') return 'FREQ=DAILY';
-  if (freq === 'weekdays') return 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR';
-  const set = (days || []).filter((day) => ALL_DAYS.includes(day)).sort((a, b) => a - b);
-  return `FREQ=WEEKLY;BYDAY=${set.map((day) => BYDAY[day]).join(',')}`;
-}
-
-export function parseRrule(rrule) {
-  if (!rrule) return { freq: 'once', days: [] };
-  const params = {};
-  for (const part of rrule.split(';')) {
-    const idx = part.indexOf('=');
-    if (idx > 0) params[part.slice(0, idx)] = part.slice(idx + 1);
-  }
-  if (params.FREQ === 'DAILY') return { freq: 'daily', days: [...ALL_DAYS] };
-  if (params.FREQ === 'WEEKLY') {
-    const days = (params.BYDAY ? params.BYDAY.split(',') : [])
-      .map((day) => BYDAY_NUM[day])
-      .filter((day) => day);
-    if (days.length === 5 && days.every((day) => day >= 1 && day <= 5)) {
-      return { freq: 'weekdays', days: [1, 2, 3, 4, 5] };
-    }
-    return { freq: 'custom', days: days.length ? days : [] };
-  }
-  return { freq: 'custom', days: [] };
-}
 
 function parseTime(value) {
   if (!value) return { date: '', time: '' };
@@ -89,7 +63,27 @@ function firstMatchingDate(monday, freq, days) {
 export function occurrenceFromEvent(item) {
   const isRecurring = !!item.recurringEventId;
   const id = item.id;
-  const seriesId = isRecurring ? item.recurringEventId : id;
+  const seriesId = isRecurring ? item.recurringEventId : item.uid ?? item.id;
+  const rrule = Array.isArray(item.recurrence) ? item.recurrence[0] : '';
+  if (item.undated) {
+    return {
+      id,
+      seriesId,
+      text: item.summary || '',
+      dateStr: '',
+      day: 0,
+      time: '',
+      endTime: '',
+      allDay: false,
+      freq: 'once',
+      days: [],
+      recurrence: rrule,
+      isMaster: false,
+      task: true,
+      status: item.status || '',
+      undated: true,
+    };
+  }
   const original = item.originalStartTime || {};
   const startDate = item.start?.date || item.start?.dateTime || '';
   const endDate = item.end?.date || item.end?.dateTime || '';
@@ -103,7 +97,6 @@ export function occurrenceFromEvent(item) {
   const occurrenceDate = isRecurring
     ? parseTime(original.dateTime || original.date).date
     : start.date;
-  const rrule = Array.isArray(item.recurrence) ? item.recurrence[0] : '';
   const parsed = parseRrule(rrule);
   const fallbackDay = occurrenceDate ? weekdayNum(parseDateKey(occurrenceDate)) : 1;
   if (parsed.freq === 'custom' && !parsed.days.length) {
@@ -123,6 +116,8 @@ export function occurrenceFromEvent(item) {
     recurrence: rrule,
     originalStart: original,
     isMaster: !isRecurring && !!rrule,
+    task: item.task ? true : false,
+    status: item.task ? (item.status || '') : '',
   };
 }
 
@@ -154,13 +149,8 @@ const state = ref({
   saving: false,
 });
 
-export async function checkCalendarConnection(interactive = false) {
-  try {
-    await getCalendarToken({ interactive });
-    return true;
-  } catch {
-    return false;
-  }
+export async function checkCalendarConnection() {
+  return hasAccount() && hasCalendar();
 }
 
 export function reloadKanban() {
@@ -173,18 +163,30 @@ export function useKanban() {
   const status = computed(() => state.value.status);
   const error = computed(() => state.value.error);
   const saving = computed(() => state.value.saving);
+  const taskSeriesIds = new Set();
 
   function isDone(seriesId, dateStr) {
     return !!done.value[seriesId]?.[dateStr];
   }
 
-  function toggleDone(seriesId, dateStr) {
+  async function toggleDone(seriesId, dateStr) {
+    const nextDone = !isDone(seriesId, dateStr);
+    if (taskSeriesIds.has(seriesId)) {
+      try {
+        await patchTask(seriesId, {
+          status: nextDone ? 'COMPLETED' : 'NEEDS-ACTION',
+          completed: nextDone ? true : undefined,
+        });
+      } catch {
+        return;
+      }
+    }
     const current = done.value[seriesId] || {};
     const next = { ...current };
-    if (next[dateStr]) {
-      delete next[dateStr];
-    } else {
+    if (nextDone) {
       next[dateStr] = true;
+    } else {
+      delete next[dateStr];
     }
     if (Object.keys(next).length) {
       done.value = { ...done.value, [seriesId]: next };
@@ -196,20 +198,56 @@ export function useKanban() {
     persistDone(done.value);
   }
 
+  function seedTaskDone(current) {
+    let changed = false;
+    const next = { ...done.value };
+    for (const ev of current) {
+      if (!ev.task || !ev.seriesId) continue;
+      const entry = { ...(next[ev.seriesId] || {}) };
+      const target = ev.status === 'COMPLETED';
+      if (target !== !!entry[ev.dateStr]) {
+        if (target) {
+          entry[ev.dateStr] = true;
+        } else {
+          delete entry[ev.dateStr];
+        }
+        changed = true;
+      }
+      if (Object.keys(entry).length) {
+        next[ev.seriesId] = entry;
+      } else if (next[ev.seriesId]) {
+        delete next[ev.seriesId];
+      }
+    }
+    if (changed) {
+      done.value = next;
+      persistDone(next);
+    }
+  }
+
   async function reloadWeek() {
     const monday = state.value.monday;
     if (!monday) return;
     state.value = { ...state.value, status: 'loading', error: '' };
     try {
-      const res = await listEvents(monday);
-      const items = Array.isArray(res?.items) ? res.items : [];
+      resetUidMeta();
+      const eventsRes = await listEvents(monday);
+      const tasksRes = hasTasksCalendar()
+        ? await listTasks(monday).catch(() => [])
+        : [];
+      const items = [...(Array.isArray(eventsRes) ? eventsRes : Array.isArray(eventsRes?.items) ? eventsRes.items : []), ...(Array.isArray(tasksRes) ? tasksRes : [])];
+      taskSeriesIds.clear();
+      for (const it of items) {
+        if (it.task) taskSeriesIds.add(it.uid);
+      }
       const parsed = items.map(occurrenceFromEvent);
+      seedTaskDone(parsed);
       const seriesMeta = {};
       for (const ev of parsed) {
         if (ev.isMaster && ev.recurrence) seriesMeta[ev.id] = { freq: ev.freq, days: ev.days };
       }
       const missing = parsed
-        .filter((ev) => !ev.isMaster && ev.freq === 'once' && ev.seriesId && !seriesMeta[ev.seriesId])
+        .filter((ev) => !ev.isMaster && ev.freq === 'once' && ev.recurringEventId && ev.seriesId && !seriesMeta[ev.seriesId])
         .map((ev) => ev.seriesId);
       for (const sid of new Set(missing)) {
         try {
@@ -249,21 +287,25 @@ export function useKanban() {
     return state.value.events.find((ev) => ev.seriesId === seriesId);
   }
 
-  async function addTask({ text, time = '', endTime = '', freq = 'daily', days = ALL_DAYS, date = '' }) {
+  async function addTask({ text, time = '', endTime = '', freq = 'daily', days = ALL_DAYS, date = '', kind = 'task' }) {
     state.value = { ...state.value, saving: true };
     try {
       const f = FREQS.includes(freq) ? freq : 'daily';
       const dateStr = f === 'once'
         ? date
         : firstMatchingDate(state.value.monday || new Date(), f, days);
-      const { start, end } = buildStartEnd({ date: dateStr, time, endTime });
+      const { start, end } = dateStr ? buildStartEnd({ date: dateStr, time, endTime }) : { start: null, end: null };
       const body = {
         summary: text,
         start,
         end,
         recurrence: f === 'once' ? [] : [rruleFor(f, days)],
       };
-      await insertEvent('primary', body);
+      if (kind === 'task') {
+        await insertTask('primary', body);
+      } else {
+        await insertEvent('primary', body);
+      }
       await reloadWeek();
     } finally {
       state.value = { ...state.value, saving: false };
@@ -273,7 +315,8 @@ export function useKanban() {
   async function updateTask(seriesId, patch) {
     state.value = { ...state.value, saving: true };
     try {
-      const master = await getEvent('primary', seriesId);
+      const isTask = taskSeriesIds.has(seriesId);
+      const master = isTask ? await getTask(seriesId) : await getEvent('primary', seriesId);
       const start = master.start || {};
       const masterTime = start.date ? '' : parseTime(start.dateTime).time;
       const startDate = start.date ? start.date.slice(0, 10) : parseTime(start.dateTime).date;
@@ -289,7 +332,11 @@ export function useKanban() {
         body.end = e;
       }
       body.recurrence = f === 'once' ? [] : [rruleFor(f, patch.freq === 'custom' ? patch.days : freqDays({ freq: f, days: patch.days }))];
-      await patchEvent('primary', seriesId, body);
+      if (isTask) {
+        await patchTask(seriesId, body);
+      } else {
+        await patchEvent('primary', seriesId, body);
+      }
       await reloadWeek();
       return true;
     } finally {
@@ -300,7 +347,11 @@ export function useKanban() {
   async function removeTask(seriesId) {
     state.value = { ...state.value, saving: true };
     try {
-      await deleteEvent('primary', seriesId);
+      if (taskSeriesIds.has(seriesId)) {
+        await deleteTask(seriesId);
+      } else {
+        await deleteEvent('primary', seriesId);
+      }
       const rest = { ...done.value };
       delete rest[seriesId];
       done.value = rest;
@@ -315,7 +366,7 @@ export function useKanban() {
     if (fromDay === toDay) return false;
     const ev = occurrenceOf(seriesId, fromDay);
     if (!ev) return false;
-    const occurrenceDate = parseDateKey(ev.dateStr);
+    const occurrenceDate = ev.dateStr ? parseDateKey(ev.dateStr) : state.value.monday;
     if (ev.freq === 'once') {
       const moved = addDays(mondayOf(occurrenceDate), toDay - 1);
       return updateTask(seriesId, {

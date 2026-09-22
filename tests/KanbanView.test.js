@@ -3,138 +3,57 @@ import { mount } from '@vue/test-utils';
 import KanbanView from '../src/views/KanbanView.vue';
 import { useLocale } from '../src/composables/useLocale.js';
 import { reloadKanban } from '../src/composables/useKanban.js';
-import { setCalendarToken, clearCalendarToken } from '../src/composables/useGoogleCalendar.js';
-import { ALL_DAYS, dateKey, parseDateKey, addDays, weekdayNum } from '../src/utils/week.js';
+import { setAccount, setCalendar, setTasksCalendar, clearAccount, resetEventsMock } from '../src/composables/useYandexCalendar.js';
+import { ALL_DAYS, dateKey, parseDateKey, addDays } from '../src/utils/week.js';
+import { createCalDavMock } from './caldavMock.js';
 
 const WEEK = '2026-01-05';
+const ACCOUNT = { login: 'user@yandex.ru', password: 'app-password' };
+const CALENDAR = { href: '/cal/dflt/', displayName: 'Основной календарь' };
+const TASKS_CALENDAR = { href: '/cal/tasks/', displayName: 'Задачи', component: 'VTODO' };
 
 let mockEvents;
 let fetchCalls;
 
-function timed(id, { summary = 'Task', date = WEEK, start = '09:00', end = '10:00', recurrence, recurringEventId } = {}) {
+function timed(uid, { summary = 'Task', date = WEEK, start = '09:00', end = '10:00', recurrence = '' } = {}) {
   const ev = {
-    id,
+    uid,
     summary,
     start: { dateTime: `${date}T${start}:00` },
     end: { dateTime: `${date}T${end}:00` },
+    recurrence,
+    etag: '"e1"',
   };
-  if (recurrence) ev.recurrence = [recurrence];
-  if (recurringEventId) {
-    ev.recurringEventId = recurringEventId;
-    ev.originalStartTime = { dateTime: `${date}T${start}:00` };
-  }
+  ev.href = `/cal/dflt/${uid}.ics`;
   return ev;
 }
 
-function jsonResponse(body) {
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-function expand(item, min, max) {
-  if (item.recurringEventId) return [item];
-  const rr = item.recurrence?.[0];
-  if (!rr) return [item];
-  const startStr = item.start?.date || item.start?.dateTime?.slice(0, 10) || '';
-  const startDate = startStr ? parseDateKey(startStr) : null;
-  if (!startDate) return [item];
-  const freq = {};
-  let byday = [];
-  for (const part of rr.split(';')) {
-    const idx = part.indexOf('=');
-    if (idx > 0) freq[part.slice(0, idx)] = part.slice(idx + 1);
-  }
-  byday = (freq.BYDAY || '').split(',').map((s) => ({ MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6, SU: 7 }[s])).filter(Boolean);
-  const out = [];
-  const minD = parseDateKey(min);
-  const maxD = parseDateKey(max);
-  const now = new Date(Math.min(startDate.getTime(), minD.getTime()));
-  if (freq.FREQ === 'DAILY' || byday.includes(weekdayNum(startDate))) out.push(item);
-  for (let d = now; dateKey(d) < dateKey(maxD); d = addDays(d, 1)) {
-    if (dateKey(d) < dateKey(minD) || dateKey(d) <= dateKey(startDate)) continue;
-    const dayNum = weekdayNum(d);
-    const hit = freq.FREQ === 'DAILY' || byday.includes(dayNum);
-    if (!hit) continue;
-    const key = dateKey(d);
-    const startTime = item.start?.dateTime?.slice(11, 16) || '09:00';
-    const endTime = item.end?.dateTime?.slice(11, 16) || startTime;
-    const inst = item.start?.date
-      ? {
-          id: `${item.id}-${key}`,
-          summary: item.summary,
-          start: { date: key },
-          end: { date: dateKey(addDays(d, 1)) },
-          recurringEventId: item.id,
-          originalStartTime: { date: key },
-        }
-      : {
-          id: `${item.id}-${key}`,
-          summary: item.summary,
-          start: { dateTime: `${key}T${startTime}:00` },
-          end: { dateTime: `${key}T${endTime}:00` },
-          recurringEventId: item.id,
-          originalStartTime: { dateTime: `${key}T${startTime}:00` },
-        };
-    out.push(inst);
-  }
-  return out;
-}
-
-async function mockApi(url, opts = {}) {
-  const method = opts.method || 'GET';
-  fetchCalls.push({ url: String(url), method });
-  if (method === 'GET' && url.includes('/events?')) {
-    const params = new URLSearchParams(url.split('?')[1]);
-    const min = params.get('timeMin').slice(0, 10);
-    const max = params.get('timeMax').slice(0, 10);
-    const items = [];
-    for (const ev of mockEvents) {
-      for (const inst of expand(ev, min, max)) {
-        const date = inst.originalStartTime?.date
-          ? inst.originalStartTime.date.slice(0, 10)
-          : (inst.start?.date || inst.start?.dateTime || '').slice(0, 10);
-        if (date >= min && date <= max) items.push(inst);
-      }
-    }
-    items.sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || ''));
-    return jsonResponse({ items });
-  }
-  if (method === 'GET') {
-    const id = decodeURIComponent(url.split('/').pop());
-    const ev = mockEvents.find((e) => e.id === id);
-    return jsonResponse(ev || {});
-  }
-  if (method === 'POST') {
-    const body = JSON.parse(opts.body);
-    const event = { id: `gen-${mockEvents.length + 1}`, ...body };
-    mockEvents.push(event);
-    return jsonResponse(event);
-  }
-  if (method === 'PATCH') {
-    const id = decodeURIComponent(url.split('/').pop());
-    const body = JSON.parse(opts.body);
-    const idx = mockEvents.findIndex((e) => e.id === id);
-    if (idx >= 0) mockEvents[idx] = { ...mockEvents[idx], ...body };
-    return jsonResponse(mockEvents[idx]);
-  }
-  if (method === 'DELETE') {
-    const id = decodeURIComponent(url.split('/').pop());
-    mockEvents = mockEvents.filter((e) => e.id !== id && e.recurringEventId !== id);
-    return new Response(null, { status: 204 });
-  }
-  return jsonResponse({});
+function todo(uid, { summary = 'Task', date = WEEK, start = '', status = 'NEEDS-ACTION', recurrence = '' } = {}) {
+  const ev = {
+    uid,
+    summary,
+    status,
+    recurrence,
+    etag: '"e2"',
+    href: `/cal/tasks/${uid}.ics`,
+    kind: 'VTODO',
+  };
+  if (start) ev.start = { dateTime: `${date}T${start}:00` };
+  else ev.start = { date };
+  return ev;
 }
 
 beforeEach(() => {
   localStorage.clear();
-  localStorage.setItem('gcal-token', 'TEST_TOKEN');
+  setAccount(ACCOUNT.login, ACCOUNT.password);
+  setCalendar(CALENDAR);
+  setTasksCalendar(TASKS_CALENDAR);
   useLocale().setLocale('ru');
   reloadKanban();
   mockEvents = [];
   fetchCalls = [];
-  vi.stubGlobal('fetch', mockApi);
+  const mocks = createCalDavMock({ account: ACCOUNT, calendars: [CALENDAR, TASKS_CALENDAR], events: mockEvents, fetchCalls });
+  vi.stubGlobal('fetch', mocks.handler);
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 0, 5, 12)); // Monday
 });
@@ -142,7 +61,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
-  clearCalendarToken();
+  clearAccount();
   localStorage.removeItem('kanban-done');
 });
 
@@ -150,8 +69,8 @@ async function flushAll() {
   for (let i = 0; i < 60; i += 1) await Promise.resolve();
 }
 
-async function mountBoard(events = mockEvents) {
-  mockEvents = events;
+async function mountBoard(events = []) {
+  events.forEach((ev) => mockEvents.push(ev));
   const wrapper = mount(KanbanView);
   await flushAll();
   return wrapper;
@@ -174,9 +93,7 @@ describe('KanbanView', () => {
 
   it('renders occurrences from calendar events in their columns', async () => {
     const events = [
-      ...ALL_DAYS.map((day) =>
-        timed(`daily-${day}`, { summary: 'Зарядка', date: dateKey(addDays(parseDateKey(WEEK), day - 1)), recurringEventId: 'daily', recurrence: 'FREQ=DAILY' }),
-      ),
+      timed('daily', { summary: 'Зарядка', recurrence: 'FREQ=DAILY' }),
       timed('gym', { summary: 'Тренажёрка', date: '2026-01-07', start: '18:00', end: '19:30' }),
     ];
     const wrapper = await mountBoard(events);
@@ -202,7 +119,7 @@ describe('KanbanView', () => {
 
     const created = mockEvents.find((e) => e.summary === 'Зарядка');
     expect(created).toBeDefined();
-    expect(created.recurrence).toEqual(['FREQ=DAILY']);
+    expect(created.recurrence).toBe('FREQ=DAILY');
     expect(wrapper.findAll('.kb-card').length).toBeGreaterThanOrEqual(1);
     expect(wrapper.findAll('.kb-card')[0].find('.kb-text').text()).toBe('Зарядка');
     wrapper.unmount();
@@ -218,7 +135,7 @@ describe('KanbanView', () => {
     const created = mockEvents.find((e) => e.summary === 'Стоматолог');
     expect(created).toBeDefined();
     expect(created.start.date).toBe('2026-01-07');
-    expect(created.recurrence).toEqual([]);
+    expect(created.recurrence).toBe('');
 
     const cards = wrapper.findAll('.kb-card');
     expect(cards).toHaveLength(1);
@@ -236,24 +153,26 @@ describe('KanbanView', () => {
   });
 
   it('toggles a card done and updates the progress', async () => {
-    const wrapper = await mountBoard([timed('run', { summary: 'Бег', date: WEEK, recurrence: 'FREQ=DAILY' })]);
+    const wrapper = await mountBoard([todo('run', { summary: 'Бег', date: WEEK, start: '09:00', recurrence: 'FREQ=DAILY' })]);
     let cards = wrapper.findAll('.kb-card');
     expect(cards).toHaveLength(7);
     expect(cards[0].classes()).not.toContain('done');
     expect(wrapper.find('.kb-stats-text').text()).toBe('0 / 7');
 
     await cards[0].find('.kb-done').trigger('click');
+    await flushAll();
     cards = wrapper.findAll('.kb-card');
     expect(cards[0].classes()).toContain('done');
     expect(wrapper.find('.kb-stats-text').text()).toBe('1 / 7');
 
     await cards[0].find('.kb-done').trigger('click');
+    await flushAll();
     expect(wrapper.find('.kb-stats-text').text()).toBe('0 / 7');
     wrapper.unmount();
   });
 
-  it('moves a card between days by drag and drop, patching the calendar', async () => {
-    const wrapper = await mountBoard([timed('read', { summary: 'Чтение', date: WEEK, recurrence: 'FREQ=DAILY' })]);
+  it('moves a card between days by drag and drop, writing a new RRULE to the calendar', async () => {
+    const wrapper = await mountBoard([timed('read', { summary: 'Чтение', recurrence: 'FREQ=DAILY' })]);
     expect(wrapper.findAll('.kb-card')).toHaveLength(7);
 
     const columns = wrapper.findAll('.kb-column');
@@ -262,16 +181,16 @@ describe('KanbanView', () => {
     await columns[4].trigger('drop');
     await flushAll();
 
-    const patched = mockEvents.find((e) => e.id === 'read');
-    expect(patched.recurrence[0]).not.toContain('BYDAY=MO');
-    expect(patched.recurrence[0]).toContain('TU');
+    const patched = mockEvents.find((e) => e.uid === 'read');
+    expect(patched.recurrence).not.toContain('BYDAY=MO');
+    expect(patched.recurrence).toContain('TU');
 
     expect(wrapper.findAll('.kb-column')[0].findAll('.kb-card')).toHaveLength(0);
     expect(wrapper.findAll('.kb-column')[4].findAll('.kb-card').length).toBeGreaterThanOrEqual(1);
     wrapper.unmount();
   });
 
-  it('shows a time range when an end time is set and clears it on edit', async () => {
+  it('shows a time range when an end time is set and defaults to one hour after clearing it', async () => {
     const wrapper = await mountBoard([]);
     await wrapper.find('.kb-tool-btn.primary').trigger('click');
     const inputs = wrapper.findAll('.modal-input');
@@ -292,7 +211,7 @@ describe('KanbanView', () => {
     await flushAll();
 
     card = wrapper.find('.kb-card');
-    expect(card.find('.kb-time').text()).toBe('09:00');
+    expect(card.find('.kb-time').text()).toBe('09:00 – 10:00');
     wrapper.unmount();
   });
 
@@ -318,8 +237,8 @@ describe('KanbanView', () => {
 
   it('navigates between weeks refetching the calendar and jumps back to today', async () => {
     const wrapper = await mountBoard([]);
-    const listCalls = () => fetchCalls.filter((c) => c.url.includes('/events?'));
-    expect(listCalls()).toHaveLength(1);
+    const listCalls = () => fetchCalls.filter((c) => c.method === 'PROPFIND');
+    expect(listCalls()).toHaveLength(2);
 
     expect(wrapper.find('.kb-today').exists()).toBe(false);
     const label = () => wrapper.find('.kb-week-label').text();
@@ -329,13 +248,11 @@ describe('KanbanView', () => {
     await wrapper.findAll('.kb-nav .kb-arrow')[1].trigger('click');
     await flushAll();
     expect(label()).toContain('января');
-    expect(listCalls()).toHaveLength(2);
-    expect(listCalls()[1].url).toContain('2026-01-12');
+    expect(listCalls()).toHaveLength(4);
 
     await wrapper.find('.kb-today').trigger('click');
     await flushAll();
-    expect(listCalls()).toHaveLength(3);
-    expect(listCalls()[2].url).toContain('2026-01-05');
+    expect(listCalls()).toHaveLength(6);
     expect(wrapper.find('.kb-today').exists()).toBe(false);
     wrapper.unmount();
   });
@@ -351,20 +268,109 @@ describe('KanbanView', () => {
   });
 
   it('deletes a task via the editor and removes it from the calendar', async () => {
-    const wrapper = await mountBoard([timed('doomed', { summary: 'Ненужное', date: WEEK })]);
+    const wrapper = await mountBoard([timed('doomed', { summary: 'Ненужное' })]);
     await wrapper.find('.kb-card').find('.kb-edit').trigger('click');
     await wrapper.find('.modal-btn.danger').trigger('click');
     await flushAll();
-    expect(mockEvents.some((e) => e.id === 'doomed')).toBe(false);
+    expect(mockEvents.some((e) => e.uid === 'doomed')).toBe(false);
     expect(wrapper.findAll('.kb-card')).toHaveLength(0);
     wrapper.unmount();
   });
 
-  it('shows a connect button when no Google token is available', async () => {
-    localStorage.removeItem('gcal-token');
+  it('shows a connect button when no Yandex account is available', async () => {
+    clearAccount();
     const wrapper = await mountBoard([]);
     expect(wrapper.find('.kb-tool-btn.primary').attributes('disabled')).toBeDefined();
-    expect(wrapper.find('.kb-tools').text()).toContain('Подключить Google');
+    expect(wrapper.find('.kb-tools').text()).toContain('Подключить Яндекс');
+    wrapper.unmount();
+  });
+
+  it('connects with a Yandex account, discovers calendars and loads the board', async () => {
+    clearAccount();
+    localStorage.removeItem('ycal-calendar');
+    mockEvents.push(timed('fit', { summary: 'Занятие', recurrence: 'FREQ=DAILY' }));
+    const wrapper = mount(KanbanView);
+    await flushAll();
+    expect(wrapper.find('.kb-tool-btn.primary').attributes('disabled')).toBeDefined();
+
+    await wrapper.findAll('.kb-tool-btn')[0].trigger('click');
+    await wrapper.find('.kb-conn-login').setValue(ACCOUNT.login);
+    await wrapper.find('.kb-conn-pass').setValue(ACCOUNT.password);
+    await wrapper.find('.modal-btn.primary').trigger('click');
+    await flushAll();
+
+    expect(wrapper.find('.kb-conn-cal').exists()).toBe(true);
+    await wrapper.find('.modal-btn.primary').trigger('click');
+    await flushAll();
+
+    expect(wrapper.find('.kb-tool-btn.primary').attributes('disabled')).toBeUndefined();
+    expect(wrapper.findAll('.kb-card')).toHaveLength(7);
+    wrapper.unmount();
+  });
+
+  it('allows pick only after a calendar is discovered', async () => {
+    resetEventsMock();
+    const wrapper = mount(KanbanView);
+    await flushAll();
+    await wrapper.findAll('.kb-tool-btn')[0].trigger('click');
+    expect(wrapper.findAll('.modal-btn.primary')).toHaveLength(1);
+    expect(wrapper.findAll('.modal-btn.primary')[0].text()).toBe('Проверить');
+    wrapper.unmount();
+  });
+
+  it('opens the settings gear with calendar pickers and saves them', async () => {
+    mockEvents.push(timed('fit', { summary: 'Занятие', recurrence: 'FREQ=DAILY' }));
+    const wrapper = await mountBoard([]);
+    await wrapper.find('.kb-tool-gear').trigger('click');
+    await flushAll();
+
+    expect(wrapper.find('.kb-conn-cal').exists()).toBe(true);
+    expect(wrapper.find('.kb-conn-tasks').exists()).toBe(true);
+    const saveBtn = wrapper.findAll('.modal-btn.primary').pop();
+    expect(saveBtn.text()).toBe('Сохранить');
+
+    const tasksSelect = wrapper.find('.kb-conn-tasks');
+    await tasksSelect.setValue('');
+    await saveBtn.trigger('click');
+    await flushAll();
+
+    expect(wrapper.findAll('.kb-card')).toHaveLength(7);
+    expect(wrapper.find('.kb-tool-btn.primary').attributes('disabled')).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it('renders undated tasks from the tasks calendar in the no-date block', async () => {
+    const wrapper = await mountBoard([{
+      uid: 'u1',
+      kind: 'VTODO',
+      summary: 'Разобрать почту',
+      status: 'NEEDS-ACTION',
+      etag: '"e2"',
+      href: '/cal/tasks/u1.ics',
+    }]);
+    expect(wrapper.find('.kb-undated').exists()).toBe(true);
+    expect(wrapper.find('.kb-undated .kb-text').text()).toBe('Разобрать почту');
+    expect(wrapper.findAll('.kb-column .kb-card')).toHaveLength(0);
+    expect(wrapper.find('.kb-stats-text').text()).toBe('0 / 1');
+    wrapper.unmount();
+  });
+
+  it('toggles a task done and persists STATUS to the tasks calendar', async () => {
+    const wrapper = await mountBoard([{
+      uid: 't1',
+      kind: 'VTODO',
+      summary: 'Оплатить счета',
+      status: 'NEEDS-ACTION',
+      etag: '"e2"',
+      href: '/cal/tasks/t1.ics',
+    }]);
+    const card = wrapper.find('.kb-undated .kb-card');
+    expect(card.classes()).not.toContain('done');
+    await card.find('.kb-done').trigger('click');
+    await flushAll();
+    const rec = mockEvents.find((e) => e.uid === 't1');
+    expect(rec.status).toBe('COMPLETED');
+    expect(wrapper.find('.kb-undated .kb-card').classes()).toContain('done');
     wrapper.unmount();
   });
 });
