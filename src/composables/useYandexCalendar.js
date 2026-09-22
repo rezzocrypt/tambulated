@@ -10,6 +10,7 @@ import {
 const CALDAV_ROOT = 'https://caldav.yandex.ru';
 const ACCOUNT_KEY = 'ycal-account';
 const CALENDAR_KEY = 'ycal-calendar';
+const CALENDARS_KEY = 'ycal-calendars';
 const TASKS_CALENDAR_KEY = 'ycal-tasks-calendar';
 
 let principalHrefValue = null;
@@ -53,46 +54,83 @@ export function logout() {
   clearAccount();
   localStorage.removeItem(CALENDAR_KEY);
   localStorage.removeItem(TASKS_CALENDAR_KEY);
+  localStorage.removeItem(CALENDARS_KEY);
 }
 
 export function hasAccount() {
   return !!readAccount();
 }
 
-export function getCalendar() {
+function readLegacyCalendar(key) {
   try {
-    return JSON.parse(localStorage.getItem(CALENDAR_KEY) || 'null');
+    return JSON.parse(localStorage.getItem(key) || 'null');
   } catch {
     return null;
   }
 }
 
-export function setCalendar(calendar) {
-  if (calendar && calendar.href) {
-    localStorage.setItem(CALENDAR_KEY, JSON.stringify({ href: calendar.href, displayName: calendar.displayName || '' }));
+export function getCalendars() {
+  try {
+    const list = JSON.parse(localStorage.getItem(CALENDARS_KEY) || 'null');
+    if (Array.isArray(list) && list.length) {
+      return list
+        .filter((c) => c && c.href)
+        .map((c) => ({ href: c.href, displayName: c.displayName || '', component: c.component === 'VTODO' ? 'VTODO' : 'VEVENT' }));
+    }
+  } catch {
+    /* fall through to legacy keys */
+  }
+  const evCal = readLegacyCalendar(CALENDAR_KEY);
+  const taskCal = readLegacyCalendar(TASKS_CALENDAR_KEY);
+  const legacy = [];
+  if (evCal?.href) legacy.push({ href: evCal.href, displayName: evCal.displayName || '', component: 'VEVENT' });
+  if (taskCal?.href && taskCal.href !== evCal?.href) legacy.push({ href: taskCal.href, displayName: taskCal.displayName || '', component: 'VTODO' });
+  if (legacy.length) {
+    localStorage.setItem(CALENDARS_KEY, JSON.stringify(legacy));
+  }
+  return legacy;
+}
+
+export function setCalendars(list) {
+  const clean = Array.isArray(list)
+    ? list
+        .filter((c) => c && c.href)
+        .map((c) => ({ href: c.href, displayName: c.displayName || '', component: c.component === 'VTODO' ? 'VTODO' : 'VEVENT' }))
+    : [];
+  if (clean.length) {
+    localStorage.setItem(CALENDARS_KEY, JSON.stringify(clean));
+  } else {
+    localStorage.removeItem(CALENDARS_KEY);
   }
   uidMeta.clear();
+}
+
+export function getCalendar() {
+  return getCalendars().find((c) => c.component !== 'VTODO') || null;
+}
+
+export function setCalendar(calendar) {
+  const rest = getCalendars().filter((c) => c.component === 'VTODO');
+  const list = calendar && calendar.href ? [...rest, { href: calendar.href, displayName: calendar.displayName || '', component: 'VEVENT' }] : rest;
+  setCalendars(list);
 }
 
 export function hasCalendar() {
   return !!getCalendar()?.href;
 }
 
+export function hasEventsCalendar() {
+  return !!getCalendar()?.href;
+}
+
 export function getTasksCalendar() {
-  try {
-    return JSON.parse(localStorage.getItem(TASKS_CALENDAR_KEY) || 'null');
-  } catch {
-    return null;
-  }
+  return getCalendars().find((c) => c.component === 'VTODO') || null;
 }
 
 export function setTasksCalendar(calendar) {
-  if (calendar && calendar.href) {
-    localStorage.setItem(TASKS_CALENDAR_KEY, JSON.stringify({ href: calendar.href, displayName: calendar.displayName || '' }));
-  } else {
-    localStorage.removeItem(TASKS_CALENDAR_KEY);
-  }
-  uidMeta.clear();
+  const rest = getCalendars().filter((c) => c.component !== 'VTODO');
+  const list = calendar && calendar.href ? [...rest, { href: calendar.href, displayName: calendar.displayName || '', component: 'VTODO' }] : rest;
+  setCalendars(list);
 }
 
 export function hasTasksCalendar() {
@@ -245,7 +283,12 @@ export async function listEvents(monday) {
   basicAuthHeader();
   const minKey = dateKey(monday);
   const maxKey = dateKey(addDays(monday, 7));
-  return listFromCalendar(getCalendar(), 'VEVENT', expandOccurrences, minKey, maxKey);
+  const cals = getCalendars().filter((c) => c.component !== 'VTODO');
+  const out = [];
+  for (const cal of cals) {
+    out.push(...(await listFromCalendar(cal, 'VEVENT', expandOccurrences, minKey, maxKey)));
+  }
+  return out;
 }
 
 export function resetUidMeta() {
@@ -256,7 +299,12 @@ export async function listTasks(monday) {
   basicAuthHeader();
   const minKey = dateKey(monday);
   const maxKey = dateKey(addDays(monday, 7));
-  return listFromCalendar(getTasksCalendar(), 'VTODO', expandTasks, minKey, maxKey);
+  const cals = getCalendars().filter((c) => c.component === 'VTODO');
+  const out = [];
+  for (const cal of cals) {
+    out.push(...(await listFromCalendar(cal, 'VTODO', expandTasks, minKey, maxKey)));
+  }
+  return out;
 }
 
 export async function getEvent(_calendarId, uid) {
@@ -409,5 +457,6 @@ export function resetEventsMock() {
   clearAccount();
   localStorage.removeItem(CALENDAR_KEY);
   localStorage.removeItem(TASKS_CALENDAR_KEY);
+  localStorage.removeItem(CALENDARS_KEY);
   uidMeta.clear();
 }

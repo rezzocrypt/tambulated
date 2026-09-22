@@ -81,7 +81,6 @@ export default {
   tasksAppPassword: '应用密码',
   tasksCalendar: '事件日历',
   tasksTasksCalendar: '任务日历',
-  tasksNoTasksCalendar: '— 不需要 —',
   tasksKind: '类型',
   tasksKindTask: '任务',
   tasksKindEvent: '事件',

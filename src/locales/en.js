@@ -81,7 +81,6 @@ export default {
   tasksAppPassword: 'App password',
   tasksCalendar: 'Events calendar',
   tasksTasksCalendar: 'Tasks calendar',
-  tasksNoTasksCalendar: '— not needed —',
   tasksKind: 'Type',
   tasksKindTask: 'Task',
   tasksKindEvent: 'Event',

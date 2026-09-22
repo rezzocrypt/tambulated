@@ -313,16 +313,21 @@
         <div v-if="connectError" class="kb-conn-error">{{ connectError }}</div>
         <div v-if="eventsCalendars.length">
           <div class="kb-field-label">{{ t('tasksCalendar') }}</div>
-          <select v-model="selectedCalendarHref" class="modal-input kb-conn-cal">
-            <option v-for="cal in eventsCalendars" :key="cal.href" :value="cal.href">{{ cal.displayName }}</option>
-          </select>
+          <div class="kb-conn-cals kb-conn-cal">
+            <label v-for="cal in eventsCalendars" :key="cal.href" class="kb-conn-cal-item">
+              <input type="checkbox" :checked="selectedEventsCals.includes(cal.href)" @change="toggleCal('events', cal.href)" />
+              <span>{{ cal.displayName }}</span>
+            </label>
+          </div>
         </div>
         <div v-if="tasksCalendars.length">
           <div class="kb-field-label">{{ t('tasksTasksCalendar') }}</div>
-          <select v-model="selectedTasksCalendarHref" class="modal-input kb-conn-tasks">
-            <option value="">{{ t('tasksNoTasksCalendar') }}</option>
-            <option v-for="cal in tasksCalendars" :key="cal.href" :value="cal.href">{{ cal.displayName }}</option>
-          </select>
+          <div class="kb-conn-cals kb-conn-tasks">
+            <label v-for="cal in tasksCalendars" :key="cal.href" class="kb-conn-cal-item">
+              <input type="checkbox" :checked="selectedTasksCals.includes(cal.href)" @change="toggleCal('tasks', cal.href)" />
+              <span>{{ cal.displayName }}</span>
+            </label>
+          </div>
         </div>
         <div v-else-if="connectChecked" class="kb-conn-empty">{{ t('tasksNoCalendars') }}</div>
         <div class="modal-actions">
@@ -336,7 +341,7 @@
             <span v-if="connectChecking" class="kb-spin"></span>
             <span>{{ t('tasksCheck') }}</span>
           </button>
-          <button v-else class="modal-btn primary" :disabled="!selectedCalendarHref" @click="applyConnection">
+          <button v-else class="modal-btn primary" :disabled="!canApplyConnection" @click="applyConnection">
             {{ settingsMode ? t('tasksSave') : t('tasksConnectNow') }}
           </button>
         </div>
@@ -349,7 +354,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useLocale } from '@/composables/useLocale.js';
 import { ALL_DAYS, DAY_NAMES_KEY, dateKey, mondayOf, parseDateKey, shiftWeek, weekdayNum } from '@/utils/week.js';
-import { discoverCalendars, getAccount, getStoredAccount, setAccount, setCalendar, setTasksCalendar, hasTasksCalendar, logout } from '@/composables/useYandexCalendar.js';
+import { discoverCalendars, getAccount, getStoredAccount, setAccount, setCalendars, getCalendars, hasCalendar, hasTasksCalendar, logout } from '@/composables/useYandexCalendar.js';
 import { FREQS, useKanban, checkCalendarConnection, reloadKanban } from '@/composables/useKanban.js';
 
 const { t, toLocaleString } = useLocale();
@@ -375,8 +380,8 @@ const settingsMode = ref(false);
 const connectLogin = ref('');
 const connectPassword = ref('');
 const availCalendars = ref([]);
-const selectedCalendarHref = ref('');
-const selectedTasksCalendarHref = ref('');
+const selectedEventsCals = ref([]);
+const selectedTasksCals = ref([]);
 const connectChecked = ref(false);
 const connectChecking = ref(false);
 const connectError = ref('');
@@ -386,9 +391,21 @@ const canCheckConnect = computed(
     !connectChecking.value &&
     (!!connectPassword.value || !!getStoredAccount()?.password),
 );
+const canApplyConnection = computed(
+  () => !!availCalendars.value.length && (selectedEventsCals.value.length || selectedTasksCals.value.length),
+);
 
 const eventsCalendars = computed(() => availCalendars.value.filter((cal) => cal.component !== 'VTODO'));
 const tasksCalendars = computed(() => availCalendars.value.filter((cal) => cal.component === 'VTODO'));
+
+function toggleCal(section, href) {
+  const listRef = section === 'tasks' ? selectedTasksCals : selectedEventsCals;
+  if (listRef.value.includes(href)) {
+    listRef.value = listRef.value.filter((h) => h !== href);
+  } else {
+    listRef.value = [...listRef.value, href];
+  }
+}
 
 const week = ref(mondayOf(new Date()));
 const todayKey = dateKey(new Date());
@@ -436,8 +453,8 @@ function openConnect() {
   settingsMode.value = false;
   connectPassword.value = '';
   availCalendars.value = [];
-  selectedCalendarHref.value = '';
-  selectedTasksCalendarHref.value = '';
+  selectedEventsCals.value = [];
+  selectedTasksCals.value = [];
   connectChecked.value = false;
   connectError.value = '';
   const acc = getAccount();
@@ -455,8 +472,8 @@ async function openSettings() {
   connectLogin.value = acc?.login || '';
   connectPassword.value = acc?.password || '';
   availCalendars.value = [];
-  selectedCalendarHref.value = '';
-  selectedTasksCalendarHref.value = '';
+  selectedEventsCals.value = [];
+  selectedTasksCals.value = [];
   connectChecked.value = false;
   connectError.value = '';
   connectOpen.value = true;
@@ -471,6 +488,22 @@ function logoutAccount() {
   openConnect();
 }
 
+function prefillSelection() {
+  const stored = getCalendars();
+  const evHrefs = stored.filter((c) => c.component !== 'VTODO').map((c) => c.href);
+  const taskHrefs = stored.filter((c) => c.component === 'VTODO').map((c) => c.href);
+  selectedEventsCals.value = evHrefs.length
+    ? evHrefs.filter((h) => eventsCalendars.value.some((c) => c.href === h))
+    : eventsCalendars.value[0]
+      ? [eventsCalendars.value[0].href]
+      : [];
+  selectedTasksCals.value = taskHrefs.length
+    ? taskHrefs.filter((h) => tasksCalendars.value.some((c) => c.href === h))
+    : tasksCalendars.value[0]
+      ? [tasksCalendars.value[0].href]
+      : [];
+}
+
 async function loadCalendars() {
   connectChecking.value = true;
   connectError.value = '';
@@ -481,9 +514,7 @@ async function loadCalendars() {
     const calendars = await discoverCalendars();
     availCalendars.value = calendars;
     connectChecked.value = true;
-    const current = eventsCalendars.value[0] || calendars[0];
-    selectedCalendarHref.value = current?.href || '';
-    selectedTasksCalendarHref.value = tasksCalendars.value[0]?.href || '';
+    prefillSelection();
   } catch (err) {
     console.log(err);
     connectError.value = err?.message === 'KCAL_AUTH_FAILED' ? t('tasksIncorrectCreds') : t('tasksCalError');
@@ -494,11 +525,11 @@ async function loadCalendars() {
 }
 
 async function applyConnection() {
-  const calendar = availCalendars.value.find((cal) => cal.href === selectedCalendarHref.value);
-  if (!calendar) return;
-  setCalendar(calendar);
-  const tasksCal = availCalendars.value.find((cal) => cal.href === selectedTasksCalendarHref.value);
-  setTasksCalendar(tasksCal || null);
+  const selected = availCalendars.value.filter(
+    (cal) => selectedEventsCals.value.includes(cal.href) || selectedTasksCals.value.includes(cal.href),
+  );
+  if (!selected.length) return;
+  setCalendars(selected);
   connectOpen.value = false;
   connected.value = true;
   await loadWeek(week.value);
@@ -651,7 +682,7 @@ async function saveEditor() {
     editorError.value = t('tasksNeedTasksCalendar');
     return;
   }
-  if (kind === 'event' && !connected.value) {
+  if (kind === 'event' && !hasCalendar()) {
     editorError.value = t('tasksNeedConnect');
     return;
   }
@@ -1222,6 +1253,27 @@ function onColumnDrop(day) {
   align-items: center;
   gap: 8px;
   max-width: 420px;
+}
+.kb-conn-cals {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.kb-conn-cal-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 3px 0;
+}
+.kb-conn-cal-item input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
 }
 .kb-conn-login-text {
   flex: 1;

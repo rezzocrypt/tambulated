@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import KanbanView from '../src/views/KanbanView.vue';
 import { useLocale } from '../src/composables/useLocale.js';
 import { reloadKanban } from '../src/composables/useKanban.js';
-import { setAccount, setCalendar, setTasksCalendar, clearAccount, resetEventsMock } from '../src/composables/useYandexCalendar.js';
+import { setAccount, setCalendar, setTasksCalendar, setCalendars, clearAccount, resetEventsMock } from '../src/composables/useYandexCalendar.js';
 import { ALL_DAYS, dateKey, parseDateKey, addDays } from '../src/utils/week.js';
 import { createCalDavMock } from './caldavMock.js';
 
@@ -329,13 +329,30 @@ describe('KanbanView', () => {
     const saveBtn = wrapper.findAll('.modal-btn.primary').pop();
     expect(saveBtn.text()).toBe('Сохранить');
 
-    const tasksSelect = wrapper.find('.kb-conn-tasks');
-    await tasksSelect.setValue('');
+    await wrapper.findAll('.kb-conn-tasks input[type="checkbox"]')[0].setChecked(false);
     await saveBtn.trigger('click');
     await flushAll();
 
     expect(wrapper.findAll('.kb-card')).toHaveLength(7);
     expect(wrapper.find('.kb-tool-btn.primary').attributes('disabled')).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it('renders events and tasks from several calendars on one board', async () => {
+    const CAL2 = { href: '/cal/dflt2/', displayName: 'Второй календарь', component: 'VEVENT' };
+    const TASKS2 = { href: '/cal/tasks2/', displayName: 'Другой список', component: 'VTODO' };
+    setCalendars([CALENDAR, CAL2, TASKS_CALENDAR, TASKS2]);
+    const mocks = createCalDavMock({ account: ACCOUNT, calendars: [CALENDAR, CAL2, TASKS_CALENDAR, TASKS2], events: mockEvents });
+    vi.stubGlobal('fetch', mocks.handler);
+    mockEvents.push(
+      timed('ev1', { summary: 'Из первого', recurrence: 'FREQ=DAILY' }),
+      { ...timed('ev2', { summary: 'Из второго' }), href: '/cal/dflt2/ev2.ics' },
+      { uid: 't2', kind: 'VTODO', summary: 'Задача второго списка', status: 'NEEDS-ACTION', etag: '"e2"', href: '/cal/tasks2/t2.ics' },
+    );
+    const wrapper = await mountBoard([]);
+    expect(wrapper.findAll('.kb-card')).toHaveLength(9);
+    expect(wrapper.find('.kb-undated .kb-text').text()).toBe('Задача второго списка');
+    expect(wrapper.find('.kb-stats-text').text()).toBe('0 / 9');
     wrapper.unmount();
   });
 

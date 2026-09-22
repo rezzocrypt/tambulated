@@ -81,7 +81,6 @@ export default {
   tasksAppPassword: 'Пароль приложения',
   tasksCalendar: 'Календарь событий',
   tasksTasksCalendar: 'Календарь задач',
-  tasksNoTasksCalendar: '— не нужен —',
   tasksKind: 'Тип',
   tasksKindTask: 'Задача',
   tasksKindEvent: 'Встреча',

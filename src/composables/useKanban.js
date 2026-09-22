@@ -150,7 +150,7 @@ const state = ref({
 });
 
 export async function checkCalendarConnection() {
-  return hasAccount() && hasCalendar();
+  return hasAccount() && (hasCalendar() || hasTasksCalendar());
 }
 
 export function reloadKanban() {
