@@ -72,6 +72,8 @@
 }
 
 /* component tweaks (scoped rules would win without !important) */
+:root[data-theme="retro"] .page-toolbar,
+:root[data-theme="retro"] .page-toolbar-btn,
 :root[data-theme="retro"] .toolbar,
 :root[data-theme="retro"] .view-toggle,
 :root[data-theme="retro"] .view-toggle button,
@@ -183,6 +185,7 @@
 :root[data-theme="retro"] .kb-toolbar,
 :root[data-theme="retro"] .kb-arrow,
 :root[data-theme="retro"] .kb-tool-btn,
+:root[data-theme="retro"] .page-toolbar-btn,
 :root[data-theme="retro"] .kb-board,
 :root[data-theme="retro"] .kb-column,
 :root[data-theme="retro"] .kb-card,
@@ -203,6 +206,7 @@
 :root[data-theme="retro"] .kb-today,
 :root[data-theme="retro"] .kb-stats-text,
 :root[data-theme="retro"] .kb-tool-btn,
+:root[data-theme="retro"] .page-toolbar-btn,
 :root[data-theme="retro"] .kb-day-name,
 :root[data-theme="retro"] .kb-time,
 :root[data-theme="retro"] .kb-freq,

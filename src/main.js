@@ -1,4 +1,5 @@
 import './assets/main.css'
+import './assets/toolbar.css'
 import './assets/icons.css'
 import '@fontsource/press-start-2p/400.css'
 

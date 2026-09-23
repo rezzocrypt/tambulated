@@ -64,14 +64,19 @@ export default {
   .crumb-section:not(:first-child)::before {
     content: "›";
     margin: 0 4px 0 8px;
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1;
     color: var(--text-secondary);
     opacity: 0.5;
   }
   .crumb {
-    padding: 4px 8px;
-    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    font-size: 13px;
     color: var(--text-secondary);
     font-weight: 500;
     white-space: nowrap;

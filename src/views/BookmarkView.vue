@@ -1,24 +1,39 @@
 <template>
-  <div class="bookmark-view">
-  <div class="toolbar">
-    <BreadCrumbs
-      :items="bookmarks.parents.value"
-      :root-element="bookmarks.allBookmarks.value"
-      :click-fn="clickByItem"
-      :drop-root-fn="dropToRoot"
-    />
-    <div class="toolbar-controls">
+<div class="bookmark-view">
+  <PageToolbar>
+    <template #title>{{ t('navBookmarks') }}</template>
+    <template #meta>
+      <BreadCrumbs
+        :items="bookmarks.parents.value"
+        :root-element="bookmarks.allBookmarks.value"
+        :click-fn="clickByItem"
+        :drop-root-fn="dropToRoot"
+      />
+    </template>
+    <template #actions>
       <div class="view-toggle">
-        <button :class="{ active: viewMode === 'grid' }" @click="setViewMode('grid')" :title="t('grid')" :aria-label="t('grid')">
+        <button
+          class="page-toolbar-btn icon"
+          :class="{ active: viewMode === 'grid' }"
+          @click="setViewMode('grid')"
+          :title="t('grid')"
+          :aria-label="t('grid')"
+        >
           <span class="view-icon icon-grid"></span>
         </button>
-        <button :class="{ active: viewMode === 'table' }" @click="setViewMode('table')" :title="t('table')" :aria-label="t('table')">
+        <button
+          class="page-toolbar-btn icon"
+          :class="{ active: viewMode === 'table' }"
+          @click="setViewMode('table')"
+          :title="t('table')"
+          :aria-label="t('table')"
+        >
           <span class="view-icon icon-table"></span>
-</button>
+        </button>
       </div>
       <BlocksSettings />
-    </div>
-  </div>
+    </template>
+  </PageToolbar>
   <div v-show="bookmarks.currentNode.value == null" class="loading">
     <div class="spinner"></div>
     <span>{{ t('loading') }}</span>
@@ -85,6 +100,7 @@ import { useLocale } from '@/composables/useLocale.js';
 
 import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css';
 import BreadCrumbs from '@/components/BreadCrumbs.vue';
+import PageToolbar from '@/components/Common/PageToolbar.vue';
 import BookmarkGrid from '@/components/Bookmark/BookmarkGrid.vue';
 import BookmarkTable from '@/components/Bookmark/BookmarkTable.vue';
 import BlocksSettings from '@/components/Common/BlocksSettings.vue';
@@ -296,55 +312,10 @@ onBeforeUnmount(() => {
     flex: 1;
     min-height: 0;
   }
-  .toolbar {
-    position: sticky;
-    top: 16px;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 10px 8px 16px;
-    background: var(--glass-bg);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: var(--shadow);
-  }
-  :deep(.breadcrumbs) {
-    flex: 1;
-    min-width: 0;
-  }
-  .toolbar-controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-
   /* segmented control */
   .view-toggle {
     display: flex;
     gap: 4px;
-    padding: 4px;
-    background: rgba(0, 0, 0, 0.28);
-    border-radius: 999px;
-  }
-  .view-toggle button {
-    appearance: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 30px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    padding: 0;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
   }
   .view-toggle .view-icon {
     display: inline-flex;
@@ -365,14 +336,6 @@ onBeforeUnmount(() => {
   .view-toggle .icon-table {
     -webkit-mask-image: var(--vt-view-table-icon);
     mask-image: var(--vt-view-table-icon);
-  }
-  .view-toggle button:hover:not(.active) {
-    color: var(--text-primary);
-  }
-  .view-toggle button.active {
-    background: linear-gradient(135deg, var(--accent), #8b5cf6);
-    color: #ffffff;
-    box-shadow: 0 2px 10px rgba(109, 92, 255, 0.45);
   }
 
   /* loading state */

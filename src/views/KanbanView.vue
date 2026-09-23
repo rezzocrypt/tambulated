@@ -1,65 +1,71 @@
 <template>
   <div class="kb-view">
-    <div class="kb-toolbar">
-      <div class="kb-title-group">
+    <PageToolbar>
+      <template #title>
         <div class="kb-title">{{ t('tasksTitle') }}</div>
+      </template>
+      <template #meta>
         <div class="kb-stats" :title="t('tasksProgress')">
           <div class="kb-progress">
             <div class="kb-progress-fill" :style="{ width: progressPct + '%' }"></div>
           </div>
           <div class="kb-stats-text">{{ stats.done }} / {{ stats.total }}</div>
         </div>
-      </div>
-      <div class="kb-nav">
-        <button class="kb-arrow" :title="t('tasksPrev')" :aria-label="t('tasksPrev')" @click="navigateWeek(-1)">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        <div class="kb-week-block">
-          <div class="kb-week-label">{{ weekLabel }}</div>
-          <button v-if="!isCurrentWeek" class="kb-today" @click="goToday">{{ t('tasksToday') }}</button>
+      </template>
+      <template #center>
+        <div class="kb-nav">
+          <button class="kb-arrow" :title="t('tasksPrev')" :aria-label="t('tasksPrev')" @click="navigateWeek(-1)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <div class="kb-week-block">
+            <div class="kb-week-label">{{ weekLabel }}</div>
+            <button v-if="!isCurrentWeek" class="kb-today" @click="goToday">{{ t('tasksToday') }}</button>
+          </div>
+          <button class="kb-arrow" :title="t('tasksNext')" :aria-label="t('tasksNext')" @click="navigateWeek(1)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
         </div>
-        <button class="kb-arrow" :title="t('tasksNext')" :aria-label="t('tasksNext')" @click="navigateWeek(1)">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-      </div>
-      <div class="kb-tools">
-        <button v-if="!connected" class="kb-tool-btn" :title="t('tasksAuthHint')" @click="openConnect">
+      </template>
+      <template #actions>
+        <div class="kb-tools">
+          <button v-if="!connected" class="kb-tool-btn page-toolbar-btn" :title="t('tasksAuthHint')" @click="openConnect">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="11" width="18" height="10" rx="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
           <span>{{ t('tasksConnect') }}</span>
         </button>
-        <button v-else-if="status === 'loading'" class="kb-tool-btn" disabled>
+        <button v-else-if="status === 'loading'" class="kb-tool-btn page-toolbar-btn" disabled>
           <span class="kb-spin"></span>
           <span>{{ t('tasksLoading') }}</span>
         </button>
-        <button v-else-if="status === 'error'" class="kb-tool-btn" @click="reloadWeek">
+        <button v-else-if="status === 'error'" class="kb-tool-btn page-toolbar-btn" @click="reloadWeek">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M1 4v6h6"></path>
             <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
           </svg>
           <span>{{ t('tasksRetry') }}</span>
         </button>
-        <button class="kb-tool-btn primary" :disabled="saving || !connected" @click="openNewEditor(null)">
+        <button class="kb-tool-btn page-toolbar-btn primary" :disabled="saving || !connected" @click="openNewEditor(null)">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
           <span>{{ t('tasksAddTask') }}</span>
         </button>
-        <button v-if="connected" class="kb-tool-btn kb-tool-gear" :title="t('tasksSettings')" :aria-label="t('tasksSettings')" @click="openSettings">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button v-if="connected" class="kb-tool-btn kb-tool-gear page-toolbar-btn icon" :title="t('tasksSettings')" :aria-label="t('tasksSettings')" @click="openSettings">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
         </button>
       </div>
-    </div>
+      </template>
+    </PageToolbar>
 
     <div class="kb-board-wrap">
       <div class="kb-board">
@@ -364,6 +370,7 @@ import { useLocale } from '@/composables/useLocale.js';
 import { ALL_DAYS, DAY_NAMES_KEY, dateKey, mondayOf, parseDateKey, shiftWeek, weekdayNum } from '@/utils/week.js';
 import { discoverCalendars, getAccount, getStoredAccount, setAccount, setCalendars, getCalendars, hasCalendar, hasTasksCalendar, logout } from '@/composables/useYandexCalendar.js';
 import { FREQS, useKanban, checkCalendarConnection, reloadKanban } from '@/composables/useKanban.js';
+import PageToolbar from '@/components/Common/PageToolbar.vue';
 
 const { t, toLocaleString } = useLocale();
 const {
@@ -771,42 +778,15 @@ function onColumnDrop(day) {
 .kb-spacer {
   flex: 1;
 }
-.kb-toolbar {
-  position: sticky;
-  top: 16px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: var(--glass-bg);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: var(--shadow);
-}
-.kb-title-group {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-shrink: 0;
-  min-width: 0;
-}
 .kb-title {
   font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
   white-space: nowrap;
 }
-.kb-nav {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+.kb-nav,
+.kb-tools {
+  display: contents;
 }
 .kb-arrow {
   appearance: none;
@@ -871,48 +851,6 @@ function onColumnDrop(day) {
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
-}
-.kb-tools {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  margin-left: auto;
-}
-.kb-tool-btn {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-.kb-tool-btn:hover {
-  background: var(--glass-hover);
-  color: var(--text-primary);
-}
-.kb-tool-btn.primary {
-  background: linear-gradient(135deg, var(--accent), #8b5cf6);
-  color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 2px 10px rgba(109, 92, 255, 0.45);
-}
-.kb-tool-btn.primary:hover {
-  filter: brightness(1.08);
-}
-.kb-tool-btn.kb-tool-gear {
-  padding: 7px 9px;
-}
-.kb-tool-btn:disabled {
-  opacity: 0.55;
-  cursor: default;
 }
 .kb-spin {
   display: inline-block;
