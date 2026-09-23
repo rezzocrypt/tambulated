@@ -249,20 +249,18 @@ export default {
       try {
         const loc = await getLocation();
         if (!loc) return;
-        const cached = await loadCachedWeather(loc.lat, loc.lon);
-        if (cached) {
-          this.weather = cached;
-          return;
+        const stale = await loadStaleWeather(loc.lat, loc.lon);
+        if (stale) {
+          this.weather = stale;
         }
+        const cached = await loadCachedWeather(loc.lat, loc.lon);
+        if (cached) return;
         try {
           const data = await fetchWeather(loc.lat, loc.lon);
           await saveWeather(data, loc.lat, loc.lon);
           this.weather = data;
         } catch {
-          const stale = await loadStaleWeather(loc.lat, loc.lon);
-          if (stale) {
-            this.weather = stale;
-          } else {
+          if (!this.weather) {
             this.error = this.t('weatherError');
           }
         }

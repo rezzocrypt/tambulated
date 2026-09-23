@@ -204,6 +204,46 @@ describe('WeatherBlock', () => {
     wrapper.unmount();
   });
 
+  it('shows cached data while refreshing and updates only after the new data arrives', async () => {
+    saveLocation();
+    seedCache({ ...weatherData(), temperature: 5 }, { age: CACHE_TTL_MS + 1000 });
+    let resolveFetch;
+    const fetchMock = vi.fn(() => new Promise((res) => {
+      resolveFetch = res;
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mount(WeatherBlock);
+    await flushPromises();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.find('.weather-temp').text()).toBe('5°');
+    expect(wrapper.find('.weather-status').exists()).toBe(false);
+
+    resolveFetch({ ok: true, json: () => Promise.resolve(API_DATA) });
+    await flushPromises();
+    expect(wrapper.find('.weather-temp').text()).toBe('14,2°');
+    wrapper.unmount();
+  });
+
+  it('shows loading only when there is no cache and no new data yet', async () => {
+    saveLocation();
+    let resolveFetch;
+    const fetchMock = vi.fn(() => new Promise((res) => {
+      resolveFetch = res;
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mount(WeatherBlock);
+    await flushPromises();
+
+    expect(wrapper.find('.weather-status').text()).toBe('Загрузка…');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    resolveFetch({ ok: true, json: () => Promise.resolve(API_DATA) });
+    await flushPromises();
+    expect(wrapper.find('.weather-temp').text()).toBe('14,2°');
+    wrapper.unmount();
+  });
+
   it('shows an error when the fetch fails and no cache exists', async () => {
     saveLocation();
     mockWeatherApi({ ok: false });
