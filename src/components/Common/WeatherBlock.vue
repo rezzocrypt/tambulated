@@ -114,6 +114,7 @@
 
 <script>
 import { useLocale } from '@/composables/useLocale.js';
+import { LOCALE_MAP } from '@/config.js';
 import WeatherIcon from '@/components/Common/WeatherIcon.vue';
 import {
   loadCachedWeather,
@@ -127,8 +128,6 @@ import {
   searchWeatherLocations,
   weatherGroup,
 } from '@/composables/useWeather.js';
-
-const LOCALE_MAP = { ru: 'ru', en: 'en', zh: 'zh-CN' };
 
 export default {
   name: 'WeatherBlock',
@@ -339,6 +338,7 @@ export default {
   .weather-top {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 16px;
   }
   .weather-icon-box {

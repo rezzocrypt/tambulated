@@ -6,12 +6,13 @@ import {
   parseIcalendar,
   serializeEvent,
 } from '@/composables/caldavData.js';
-
-const CALDAV_ROOT = 'https://caldav.yandex.ru';
-const ACCOUNT_KEY = 'ycal-account';
-const CALENDAR_KEY = 'ycal-calendar';
-const CALENDARS_KEY = 'ycal-calendars';
-const TASKS_CALENDAR_KEY = 'ycal-tasks-calendar';
+import {
+  YANDEX_CALDAV_ROOT as CALDAV_ROOT,
+  YCAL_ACCOUNT_KEY as ACCOUNT_KEY,
+  YCAL_CALENDAR_KEY as CALENDAR_KEY,
+  YCAL_CALENDARS_KEY as CALENDARS_KEY,
+  YCAL_TASKS_CALENDAR_KEY as TASKS_CALENDAR_KEY,
+} from '@/config.js';
 
 let principalHrefValue = null;
 let homeHrefValue = null;

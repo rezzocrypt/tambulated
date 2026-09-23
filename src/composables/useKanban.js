@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { ALL_DAYS, addDays, dateKey, mondayOf, parseDateKey, weekdayNum } from '@/utils/week.js';
+import { KANBAN_DONE_KEY as DONE_KEY, KANBAN_FREQS as FREQS } from '@/config.js';
 import {
   hasAccount,
   hasCalendar,
@@ -20,9 +21,7 @@ import { freqDays, rruleFor, parseRrule } from '@/composables/caldavData.js';
 
 export { freqDays, rruleFor, parseRrule };
 
-const DONE_KEY = 'kanban-done';
-
-export const FREQS = ['once', 'daily', 'weekdays', 'custom'];
+export { FREQS };
 
 function parseTime(value) {
   if (!value) return { date: '', time: '' };

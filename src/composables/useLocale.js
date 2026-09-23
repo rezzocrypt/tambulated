@@ -2,12 +2,9 @@ import { ref } from 'vue';
 import ru from '@/locales/ru.js';
 import en from '@/locales/en.js';
 import zh from '@/locales/zh.js';
+import { LOCALE_KEY, SUPPORTED_LOCALES as SUPPORTED, LOCALE_MAP } from '@/config.js';
 
-const LOCALE_KEY = 'locale';
-const SUPPORTED = ['ru', 'en', 'zh'];
 const MESSAGES = { ru, en, zh };
-
-const LOCALE_MAP = { ru: 'ru', en: 'en', zh: 'zh-CN' };
 
 function detectSystemLocale() {
   const langs = typeof navigator !== 'undefined'

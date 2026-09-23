@@ -34,7 +34,7 @@
   const { blocks, isHidden } = useBlockConfig();
   const visibleBlocks = computed(() => blocks.value.filter((id) => !isHidden(id)));
   const route = useRoute();
-  const showSidebar = computed(() => route.name !== 'tasks');
+  const showSidebar = computed(() => route.name !== 'tasks' && visibleBlocks.value.length > 0);
 </script>
 
 <style scoped>

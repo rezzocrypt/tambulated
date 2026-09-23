@@ -1,10 +1,15 @@
-export const WEATHER_KEY = 'weather-cache';
-export const LOCATION_KEY = 'weather-location';
-export const REGION_KEY = 'weather-region';
-export const CACHE_TTL_MS = 10 * 60 * 1000;
+import {
+  WEATHER_KEY,
+  LOCATION_KEY,
+  REGION_KEY,
+  WEATHER_CACHE_TTL_MS as CACHE_TTL_MS,
+  WEATHER_LOCATION_MAX_AGE_MS as LOCATION_MAX_AGE_MS,
+  WEATHER_GEO_TIMEOUT_MS as GEO_TIMEOUT_MS,
+  OPEN_METEO_API_URL as API_URL,
+  OPEN_METEO_GEOCODE_URL as GEOCODE_URL,
+} from '@/config.js';
 
-const API_URL = 'https://api.open-meteo.com/v1/forecast';
-const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+export { WEATHER_KEY, LOCATION_KEY, REGION_KEY, CACHE_TTL_MS };
 
 function readJSON(key) {
   try {
@@ -68,7 +73,7 @@ export function getGeolocation() {
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
       () => resolve(null),
-      { timeout: 10000, maximumAge: 15 * 60 * 1000 },
+      { timeout: GEO_TIMEOUT_MS, maximumAge: LOCATION_MAX_AGE_MS },
     );
   });
 }

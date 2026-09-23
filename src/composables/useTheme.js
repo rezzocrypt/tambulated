@@ -1,7 +1,5 @@
 import { ref } from 'vue';
-
-const THEME_KEY = 'theme';
-const THEMES = ['system', 'light', 'dark', 'retro'];
+import { THEME_KEY, THEMES } from '@/config.js';
 
 function readStoredTheme() {
   const value = typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_KEY) : null;

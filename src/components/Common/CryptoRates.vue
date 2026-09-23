@@ -126,6 +126,7 @@
 <script>
 import { watch } from 'vue';
 import { useLocale } from '@/composables/useLocale.js';
+import { LOCALE_MAP } from '@/config.js';
 import {
   loadCryptoRates,
   loadStaleCryptoRates,
@@ -133,8 +134,6 @@ import {
   searchCryptoCoins,
   useCryptoRatesConfig,
 } from '@/composables/useCryptoRates.js';
-
-const LOCALE_MAP = { ru: 'ru', en: 'en', zh: 'zh-CN' };
 
 export default {
   name: 'CryptoRates',

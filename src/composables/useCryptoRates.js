@@ -1,18 +1,16 @@
 import { ref } from 'vue';
+import {
+  CRYPTO_CACHE_KEY as CACHE_KEY,
+  CRYPTO_SELECTED_KEY as SELECTED_KEY,
+  CRYPTO_COINS_KEY as COINS_KEY,
+  CRYPTO_CACHE_TTL_MS as CACHE_TTL_MS,
+  COINGECKO_PRICE_URL as API_URL,
+  COINGECKO_SEARCH_URL as SEARCH_URL,
+  COINS_VERSION,
+  DEFAULT_COINS,
+} from '@/config.js';
 
-export const CACHE_KEY = 'crypto-rates-cache';
-export const SELECTED_KEY = 'crypto-rates-selected';
-export const COINS_KEY = 'crypto-rates-coins';
-export const CACHE_TTL_MS = 60 * 60 * 1000;
-
-const API_URL = 'https://api.coingecko.com/api/v3/simple/price';
-const SEARCH_URL = 'https://api.coingecko.com/api/v3/search';
-const COINS_VERSION = 2;
-
-export const DEFAULT_COINS = [
-  { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin' },
-  { id: 'ethereum', symbol: 'ETH', name: 'Ethereum' },
-];
+export { CACHE_KEY, SELECTED_KEY, COINS_KEY, CACHE_TTL_MS, DEFAULT_COINS };
 
 const DEFAULT_IDS = DEFAULT_COINS.map((c) => c.id);
 

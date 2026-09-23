@@ -1,9 +1,7 @@
 import { ref, computed } from 'vue';
+import { BLOCKS_KEY, BLOCKS_VERSION, DEFAULT_BLOCKS } from '@/config.js';
 
-export const BLOCKS_KEY = 'blocks-layout';
-const BLOCKS_VERSION = 1;
-
-export const DEFAULT_BLOCKS = ['datetime', 'weather', 'crypto'];
+export { BLOCKS_KEY, DEFAULT_BLOCKS };
 
 function readLayout() {
   try {
