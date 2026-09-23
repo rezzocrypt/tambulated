@@ -1,7 +1,7 @@
 export const WEATHER_KEY = 'weather-cache';
 export const LOCATION_KEY = 'weather-location';
 export const REGION_KEY = 'weather-region';
-export const CACHE_TTL_MS = 15 * 60 * 1000;
+export const CACHE_TTL_MS = 10 * 60 * 1000;
 
 const API_URL = 'https://api.open-meteo.com/v1/forecast';
 const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
@@ -135,7 +135,7 @@ export async function fetchWeather(lat, lon) {
   const params = new URLSearchParams({
     latitude: String(lat),
     longitude: String(lon),
-    current: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m',
+    current: 'temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,is_day',
   });
   const res = await fetch(`${API_URL}?${params.toString()}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -147,6 +147,7 @@ export async function fetchWeather(lat, lon) {
     feelsLike: Number.isFinite(c.apparent_temperature) ? c.apparent_temperature : null,
     humidity: Number.isFinite(c.relative_humidity_2m) ? c.relative_humidity_2m : null,
     windSpeed: Number.isFinite(c.wind_speed_10m) ? c.wind_speed_10m : null,
+    isDay: typeof c.is_day === 'number' ? c.is_day === 1 : null,
     code: Number.isFinite(c.weather_code) ? c.weather_code : null,
   };
 }

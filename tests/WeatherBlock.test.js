@@ -81,9 +81,13 @@ describe('WeatherBlock', () => {
     expect(fetchMock.mock.calls[0][0]).toContain('longitude=37.62');
 
     expect(wrapper.find('.weather-temp').text()).toBe('14,2°');
-    expect(wrapper.find('.weather-desc').text()).toBe('Пасмурно');
-    expect(wrapper.find('.weather-details').text()).toContain('влажность 68%');
-    expect(wrapper.find('.weather-details').text()).toContain('ветер 9.1 км/ч');
+    expect(wrapper.find('.weather-icon').attributes('aria-label')).toBe('Пасмурно');
+    const hasHumidity = wrapper.findAll('.weather-detail').some((el) => el.attributes('title') === 'влажность');
+    const hasWind = wrapper.findAll('.weather-detail').some((el) => el.attributes('title') === 'ветер');
+    expect(hasHumidity).toBe(true);
+    expect(hasWind).toBe(true);
+    expect(wrapper.find('.weather-details').text()).toContain('68%');
+    expect(wrapper.find('.weather-details').text()).toContain('9.1 км/ч');
     wrapper.unmount();
   });
 
@@ -109,11 +113,30 @@ describe('WeatherBlock', () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(wrapper.find('.weather-temp').text()).toBe('14,2°');
-    expect(wrapper.find('.weather-desc').text()).toBe('Пасмурно');
+    expect(wrapper.find('.weather-icon').attributes('aria-label')).toBe('Пасмурно');
     wrapper.unmount();
   });
 
-  it('refetches when the cache is older than 15 minutes', async () => {
+  it('does not refetch on a page refresh while the cache is fresh', async () => {
+    saveLocation();
+    const fetchMock = mockWeatherApi();
+    const first = mount(WeatherBlock);
+    await flushPromises();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    first.unmount();
+
+    const stored = JSON.parse(localStorage.getItem(WEATHER_KEY));
+    expect(stored.timestamp).toBe(Date.now());
+
+    const second = mount(WeatherBlock);
+    await flushPromises();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(second.find('.weather-temp').text()).toBe('14,2°');
+    second.unmount();
+  });
+
+  it('refetches when the cache is older than 10 minutes', async () => {
     saveLocation();
     seedCache({}, { age: CACHE_TTL_MS + 1000 });
     const fetchMock = mockWeatherApi();
@@ -125,7 +148,7 @@ describe('WeatherBlock', () => {
     wrapper.unmount();
   });
 
-  it('uses fresh cache exactly at the 15-minute boundary', async () => {
+  it('uses fresh cache exactly at the 10-minute boundary', async () => {
     saveLocation();
     seedCache({}, { age: CACHE_TTL_MS - 1 });
     const fetchMock = mockWeatherApi();

@@ -19,13 +19,40 @@
     </div>
 
     <div v-if="weather" class="weather-main">
-      <div class="weather-temp">{{ formatTemp(weather.temperature) }}</div>
-      <div class="weather-desc">{{ t(weatherKey(weather.code)) }}</div>
-      <div v-if="regionName" class="weather-region">{{ regionName }}</div>
+      <div class="weather-top">
+        <div class="weather-icon-box">
+          <WeatherIcon
+            :group="weatherGroupCode(weather.code)"
+            :night="weather.isDay === false"
+            :label="weatherLabel"
+          />
+        </div>
+        <div class="weather-info">
+          <div class="weather-temp">{{ formatTemp(weather.temperature) }}</div>
+          <div v-if="regionName" class="weather-region">{{ regionName }}</div>
+        </div>
+      </div>
       <div class="weather-details">
-        <span v-if="weather.feelsLike != null">{{ t('weatherFeels') }} {{ formatTemp(weather.feelsLike) }}</span>
-        <span v-if="weather.humidity != null">{{ t('weatherHumidity') }} {{ weather.humidity }}%</span>
-        <span v-if="weather.windSpeed != null">{{ t('weatherWind') }} {{ weather.windSpeed }} км/ч</span>
+        <span v-if="weather.feelsLike != null" class="weather-detail" :title="t('weatherFeels')">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+          </svg>
+          {{ formatTemp(weather.feelsLike) }}
+        </span>
+        <span v-if="weather.humidity != null" class="weather-detail" :title="t('weatherHumidity')">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+          </svg>
+          {{ weather.humidity }}%
+        </span>
+        <span v-if="weather.windSpeed != null" class="weather-detail" :title="t('weatherWind')">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2" />
+            <path d="M9.6 4.6A2 2 0 1 1 11 8H2" />
+            <path d="M12.6 19.4A2 2 0 1 0 14 16H2" />
+          </svg>
+          {{ weather.windSpeed }} км/ч
+        </span>
       </div>
     </div>
     <div v-else-if="loading" class="weather-status">{{ t('weatherLoading') }}</div>
@@ -87,6 +114,7 @@
 
 <script>
 import { useLocale } from '@/composables/useLocale.js';
+import WeatherIcon from '@/components/Common/WeatherIcon.vue';
 import {
   loadCachedWeather,
   loadStaleWeather,
@@ -104,6 +132,9 @@ const LOCALE_MAP = { ru: 'ru', en: 'en', zh: 'zh-CN' };
 
 export default {
   name: 'WeatherBlock',
+  components: {
+    WeatherIcon,
+  },
   data() {
     return {
       weather: null,
@@ -129,6 +160,9 @@ export default {
     temperatureFormat() {
       const code = LOCALE_MAP[useLocale().current.value] || 'ru';
       return new Intl.NumberFormat(code, { maximumFractionDigits: 1 });
+    },
+    weatherLabel() {
+      return this.weather ? this.t(this.weatherKey(this.weather.code)) : '';
     },
   },
   mounted() {
@@ -204,6 +238,9 @@ export default {
     weatherKey(code) {
       const group = weatherGroup(code);
       return group >= 0 ? `weather${group}` : 'weatherUnknown';
+    },
+    weatherGroupCode(code) {
+      return weatherGroup(code);
     },
     async load() {
       if (this.running) return;
@@ -295,34 +332,70 @@ export default {
     transform: rotate(45deg);
   }
   .weather-main {
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .weather-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .weather-icon-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, rgba(109, 92, 255, 0.42), rgba(34, 211, 238, 0.14) 60%, transparent 78%);
+  }
+  .weather-icon-box svg {
+    width: 42px;
+    height: 42px;
+  }
+  .weather-info {
+    display: flex;
+    flex-direction: column;
     gap: 2px;
+    min-width: 0;
   }
   .weather-temp {
-    font-size: 34px;
+    font-size: 42px;
     font-weight: 200;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
+    letter-spacing: -0.03em;
+    line-height: 1;
     font-variant-numeric: tabular-nums;
   }
-  .weather-desc {
-    font-size: 13px;
-    color: var(--text-secondary);
-  }
   .weather-region {
-    margin-top: 2px;
     font-size: 12px;
     color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .weather-details {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 12px;
-    margin-top: 10px;
+    gap: 4px 14px;
     padding-top: 10px;
     border-top: 1px solid var(--border);
     font-size: 12px;
     color: var(--text-secondary);
+  }
+  .weather-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .weather-detail svg {
+    flex-shrink: 0;
+    opacity: 0.85;
   }
   .weather-status {
     font-size: 13px;
