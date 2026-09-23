@@ -86,7 +86,8 @@ export default {
 <style scoped>
   .wrapper {
     display: flex;
-    place-items: flex-start;
+    align-items: flex-start;
+    align-content: flex-start;
     flex-wrap: wrap;
     gap: 16px;
     overflow-y: auto;
