@@ -1,7 +1,7 @@
 <template>
   <div class="page-toolbar">
     <div class="page-toolbar-group">
-      <div class="page-toolbar-title">
+      <div v-if="$slots.title" class="page-toolbar-title">
         <slot name="title" />
       </div>
       <div class="page-toolbar-meta">

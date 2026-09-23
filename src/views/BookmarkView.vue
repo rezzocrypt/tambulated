@@ -1,7 +1,6 @@
 <template>
 <div class="bookmark-view">
   <PageToolbar>
-    <template #title>{{ t('navBookmarks') }}</template>
     <template #meta>
       <BreadCrumbs
         :items="bookmarks.parents.value"
