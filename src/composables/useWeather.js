@@ -20,48 +20,82 @@ function readJSON(key) {
   }
 }
 
-export function getSavedLocation() {
-  const stored = readJSON(LOCATION_KEY);
+function hasExtensionStorage() {
+  return typeof chrome !== 'undefined' && !!chrome.storage?.local;
+}
+
+async function storageGet(key) {
+  if (hasExtensionStorage()) {
+    try {
+      const got = await chrome.storage.local.get(key);
+      if (got && key in got) return got[key];
+    } catch {
+      /* fall back to localStorage */
+    }
+  }
+  return readJSON(key);
+}
+
+async function storageSet(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* localStorage unavailable — extension storage will hold the value */
+  }
+  if (hasExtensionStorage()) {
+    try {
+      await chrome.storage.local.set({ [key]: value });
+    } catch {
+      /* storage unavailable — keep value in memory only */
+    }
+  }
+}
+
+async function storageRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+  if (hasExtensionStorage()) {
+    try {
+      await chrome.storage.local.remove(key);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+export async function getSavedLocation() {
+  const stored = await storageGet(LOCATION_KEY);
   if (stored && Number.isFinite(stored.lat) && Number.isFinite(stored.lon)) {
     return { lat: stored.lat, lon: stored.lon };
   }
   return null;
 }
 
-export function saveLocation(coords) {
-  try {
-    localStorage.setItem(LOCATION_KEY, JSON.stringify({ lat: coords.lat, lon: coords.lon }));
-  } catch {
-    /* storage unavailable — keep location in memory only */
-  }
+export async function saveLocation(coords) {
+  await storageSet(LOCATION_KEY, { lat: coords.lat, lon: coords.lon });
 }
 
-export function getSavedRegion() {
-  const stored = readJSON(REGION_KEY);
+export async function getSavedRegion() {
+  const stored = await storageGet(REGION_KEY);
   if (stored && Number.isFinite(stored.lat) && Number.isFinite(stored.lon)) {
     return { lat: stored.lat, lon: stored.lon, name: stored.name || '' };
   }
   return null;
 }
 
-export function setRegion(region) {
-  try {
-    localStorage.setItem(REGION_KEY, JSON.stringify({
-      lat: region.lat,
-      lon: region.lon,
-      name: region.name || '',
-    }));
-  } catch {
-    /* storage unavailable — keep region in memory only */
-  }
+export async function setRegion(region) {
+  await storageSet(REGION_KEY, {
+    lat: region.lat,
+    lon: region.lon,
+    name: region.name || '',
+  });
 }
 
-export function clearRegion() {
-  try {
-    localStorage.removeItem(REGION_KEY);
-  } catch {
-    /* storage unavailable — nothing to clear */
-  }
+export async function clearRegion() {
+  await storageRemove(REGION_KEY);
 }
 
 export function getGeolocation() {
@@ -79,12 +113,12 @@ export function getGeolocation() {
 }
 
 export async function getLocation() {
-  const region = getSavedRegion();
+  const region = await getSavedRegion();
   if (region) return { lat: region.lat, lon: region.lon };
-  const saved = getSavedLocation();
+  const saved = await getSavedLocation();
   if (saved) return saved;
   const pos = await getGeolocation();
-  if (pos) saveLocation(pos);
+  if (pos) await saveLocation(pos);
   return pos;
 }
 
@@ -96,30 +130,26 @@ function sameCoords(coords, lat, lon) {
     && Math.abs(coords.lon - lon) < 1e-4;
 }
 
-export function loadCachedWeather(lat, lon) {
-  const stored = readJSON(WEATHER_KEY);
+export async function loadCachedWeather(lat, lon) {
+  const stored = await storageGet(WEATHER_KEY);
   if (!stored || !stored.data || !Number.isFinite(stored.timestamp)) return null;
   if (Date.now() - stored.timestamp >= CACHE_TTL_MS) return null;
   if (!sameCoords(stored.coords, lat, lon)) return null;
   return stored.data;
 }
 
-export function loadStaleWeather(lat, lon) {
-  const stored = readJSON(WEATHER_KEY);
+export async function loadStaleWeather(lat, lon) {
+  const stored = await storageGet(WEATHER_KEY);
   if (!stored || !stored.data || !sameCoords(stored.coords, lat, lon)) return null;
   return stored.data;
 }
 
-export function saveWeather(data, lat, lon) {
-  try {
-    localStorage.setItem(WEATHER_KEY, JSON.stringify({
-      timestamp: Date.now(),
-      coords: { lat, lon },
-      data,
-    }));
-  } catch {
-    /* storage unavailable — keep weather in memory only */
-  }
+export async function saveWeather(data, lat, lon) {
+  await storageSet(WEATHER_KEY, {
+    timestamp: Date.now(),
+    coords: { lat, lon },
+    data,
+  });
 }
 
 export function weatherGroup(code) {

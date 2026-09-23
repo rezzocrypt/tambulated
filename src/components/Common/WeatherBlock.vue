@@ -164,8 +164,8 @@ export default {
       return this.weather ? this.t(this.weatherKey(this.weather.code)) : '';
     },
   },
-  mounted() {
-    this.region = getSavedRegion();
+  async mounted() {
+    this.region = await getSavedRegion();
     document.addEventListener('click', this.onDocumentClick);
     document.addEventListener('keydown', this.onKey);
     this.load();
@@ -219,15 +219,15 @@ export default {
       return [r.country, r.admin1].filter(Boolean).join(', ');
     },
     async selectRegion(r) {
-      setRegion(r);
-      this.region = getSavedRegion();
+      await setRegion(r);
+      this.region = await getSavedRegion();
       this.query = '';
       this.results = [];
       this.weather = null;
       await this.load();
     },
     async autoLocation() {
-      clearRegion();
+      await clearRegion();
       this.region = null;
       this.query = '';
       this.results = [];
@@ -249,17 +249,17 @@ export default {
       try {
         const loc = await getLocation();
         if (!loc) return;
-        const cached = loadCachedWeather(loc.lat, loc.lon);
+        const cached = await loadCachedWeather(loc.lat, loc.lon);
         if (cached) {
           this.weather = cached;
           return;
         }
         try {
           const data = await fetchWeather(loc.lat, loc.lon);
-          saveWeather(data, loc.lat, loc.lon);
+          await saveWeather(data, loc.lat, loc.lon);
           this.weather = data;
         } catch {
-          const stale = loadStaleWeather(loc.lat, loc.lon);
+          const stale = await loadStaleWeather(loc.lat, loc.lon);
           if (stale) {
             this.weather = stale;
           } else {

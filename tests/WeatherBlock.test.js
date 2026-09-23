@@ -57,6 +57,28 @@ function seedCache(data = weatherData(), { lat = 55.75, lon = 37.62, age = 1000 
   }));
 }
 
+function mockExtensionStorage() {
+  const store = new Map();
+  vi.stubGlobal('chrome', {
+    storage: {
+      local: {
+        get: vi.fn(async (key) => {
+          const out = {};
+          if (store.has(key)) out[key] = store.get(key);
+          return out;
+        }),
+        set: vi.fn(async (obj) => {
+          for (const [k, v] of Object.entries(obj)) store.set(k, v);
+        }),
+        remove: vi.fn(async (key) => {
+          store.delete(key);
+        }),
+      },
+    },
+  });
+  return store;
+}
+
 beforeEach(() => {
   localStorage.clear();
   useLocale().setLocale('ru');
@@ -260,6 +282,55 @@ describe('WeatherBlock', () => {
     await flushPromises();
 
     expect(localStorage.getItem(REGION_KEY)).toBeNull();
+    expect(wrapper.find('.weather-error').text()).toBe('Не удалось определить местоположение');
+    wrapper.unmount();
+  });
+
+  it('uses a fresh chrome.storage.local cache when available (extension)', async () => {
+    saveLocation();
+    const store = mockExtensionStorage();
+    store.set(WEATHER_KEY, {
+      timestamp: Date.now(),
+      coords: { lat: 55.75, lon: 37.62 },
+      data: weatherData(),
+    });
+    const fetchMock = mockWeatherApi();
+    const wrapper = mount(WeatherBlock);
+    await flushPromises();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(wrapper.find('.weather-temp').text()).toBe('14,2°');
+    wrapper.unmount();
+  });
+
+  it('stores fetched weather to chrome.storage.local when available (extension)', async () => {
+    saveLocation();
+    const store = mockExtensionStorage();
+    mockWeatherApi();
+    const wrapper = mount(WeatherBlock);
+    await flushPromises();
+
+    const cached = store.get(WEATHER_KEY);
+    expect(cached).toBeDefined();
+    expect(cached.timestamp).toBe(Date.now());
+    expect(cached.coords).toEqual({ lat: 55.75, lon: 37.62 });
+    expect(cached.data.temperature).toBe(14.2);
+    wrapper.unmount();
+  });
+
+  it('clears a region persisted in chrome.storage.local as well', async () => {
+    const store = mockExtensionStorage();
+    store.set(REGION_KEY, { lat: 46.73, lon: -117.0, name: 'Moscow' });
+    mockWeatherApi();
+    const wrapper = mount(WeatherBlock);
+    await flushPromises();
+    expect(wrapper.find('.weather-region').text()).toBe('Moscow');
+
+    await wrapper.find('.weather-gear').trigger('click');
+    await wrapper.find('.weather-region-clear').trigger('click');
+    await flushPromises();
+
+    expect(store.has(REGION_KEY)).toBe(false);
     expect(wrapper.find('.weather-error').text()).toBe('Не удалось определить местоположение');
     wrapper.unmount();
   });
