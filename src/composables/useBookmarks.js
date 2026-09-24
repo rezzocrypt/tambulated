@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import chromeAPI from '@/assets/chrome-mock.js';
-import { findNode } from '@/utils/bookmarkTree.js';
+import { findNode, findParent } from '@/utils/bookmarkTree.js';
 
 const bookmarkTree = ref(null);
 const bookmarksRoot = ref(null);
@@ -18,6 +18,19 @@ export function useBookmarks() {
     bookmarksRoot.value = rootNode.value?.children ?? [];
   }
 
+  function buildParents(pid) {
+    const chain = [];
+    if (pid == null || rootNode.value == null) return chain;
+    const node = findNode(bookmarkTree.value, pid);
+    if (!node) return chain;
+    let cur = node;
+    while (cur && cur.id !== rootNode.value.id) {
+      chain.unshift(cur);
+      cur = cur.parentId == null ? null : findParent(bookmarkTree.value, cur.parentId);
+    }
+    return chain;
+  }
+
   function setCurrentView() {
     const rootId = rootNode.value?.id ?? null;
     const pid = currentParentId.value ?? rootId;
@@ -31,6 +44,7 @@ export function useBookmarks() {
       allBookmarks.value = [...bookmarksRoot.value];
       currentParentId.value = rootId;
     }
+    parents.value = buildParents(currentParentId.value);
   }
 
   async function reload() {

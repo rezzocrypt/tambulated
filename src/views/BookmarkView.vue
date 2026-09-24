@@ -4,7 +4,7 @@
     <template #meta>
       <BreadCrumbs
         :items="bookmarks.parents.value"
-        :root-element="bookmarks.allBookmarks.value"
+        :root-element="bookmarks.bookmarksRoot.value"
         :click-fn="clickByItem"
         :drop-root-fn="dropToRoot"
       />

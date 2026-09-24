@@ -75,4 +75,35 @@ describe('useBookmarks', () => {
     expect(ctx.bm.findNodeById(leaf.id)?.id).toBe(leaf.id);
     expect(ctx.bm.findNodeById('missing')).toBeNull();
   });
+
+  it('rebuilds parents from the fresh tree after reload', async () => {
+    const folder = ctx.bm.currentNode.value.find((n) => Array.isArray(n.children) && n.children.length > 0);
+    expect(folder).toBeTruthy();
+    const sub = folder.children.find((n) => Array.isArray(n.children));
+    ctx.bm.navigateInto(folder);
+    ctx.bm.navigateInto(sub);
+
+    expect(ctx.bm.currentParentId.value).toBe(sub.id);
+    expect(ctx.bm.parents.value.map((n) => n.id)).toEqual([folder.id, sub.id]);
+
+    await ctx.bm.reload();
+    expect(ctx.bm.currentParentId.value).toBe(sub.id);
+    expect(ctx.bm.parents.value.map((n) => n.id)).toEqual([folder.id, sub.id]);
+  });
+
+  it('clears parents when the current folder no longer exists after reload', async () => {
+    const folder = ctx.bm.currentNode.value.find((n) => Array.isArray(n.children) && n.children.length > 0);
+    expect(folder).toBeTruthy();
+    const sub = folder.children.find((n) => Array.isArray(n.children));
+    expect(sub).toBeTruthy();
+
+    ctx.bm.navigateInto(folder);
+    ctx.bm.navigateInto(sub);
+    expect(ctx.bm.parents.value.map((n) => n.id)).toEqual([folder.id, sub.id]);
+
+    await ctx.chromeAPI.bookmarks.removeTree(sub.id);
+    await ctx.bm.reload();
+
+    expect(ctx.bm.parents.value).toHaveLength(0);
+  });
 });
