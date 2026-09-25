@@ -24,6 +24,8 @@ export const WEATHER_GEO_TIMEOUT_MS = 10 * 1000;
 
 export const CRYPTO_CACHE_TTL_MS = 60 * 60 * 1000;
 
+export const DEAD_SCAN_TIMEOUT_MS = 10 * 1000;
+
 // ── API endpoints ────────────────────────────────────────────────────────
 export const OPEN_METEO_API_URL = 'https://api.open-meteo.com/v1/forecast';
 export const OPEN_METEO_GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
@@ -49,3 +51,6 @@ export const SUPPORTED_LOCALES = ['ru', 'en', 'zh'];
 export const LOCALE_MAP = { ru: 'ru', en: 'en', zh: 'zh-CN' };
 
 export const KANBAN_FREQS = ['once', 'daily', 'weekdays', 'custom'];
+
+export const DEAD_SCAN_CONCURRENCY = 6;
+export const NOT_VALIDED_FOLDER = 'Not Valided';

@@ -22,6 +22,21 @@ export function findParent(nodes, parentId) {
   return null;
 }
 
+export function collectBookmarks(nodes, skip) {
+  const result = [];
+  const walk = (list) => {
+    if (!Array.isArray(list)) return;
+    for (const node of list) {
+      if (!node || typeof node !== 'object') continue;
+      if (skip && skip(node)) continue;
+      if (Array.isArray(node.children)) walk(node.children);
+      else if (typeof node.url === 'string' && node.url.length > 0) result.push(node);
+    }
+  };
+  walk(nodes);
+  return result;
+}
+
 export function moveNode(tree, id, destination) {
   const node = findNode(tree, id);
   if (!node) return null;

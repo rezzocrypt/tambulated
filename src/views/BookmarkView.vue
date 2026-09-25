@@ -30,6 +30,7 @@
           <span class="view-icon icon-table"></span>
         </button>
       </div>
+      <BookmarksCheckSettings />
       <BlocksSettings />
     </template>
   </PageToolbar>
@@ -102,6 +103,7 @@ import BreadCrumbs from '@/components/BreadCrumbs.vue';
 import PageToolbar from '@/components/Common/PageToolbar.vue';
 import BookmarkGrid from '@/components/Bookmark/BookmarkGrid.vue';
 import BookmarkTable from '@/components/Bookmark/BookmarkTable.vue';
+import BookmarksCheckSettings from '@/components/Bookmark/BookmarksCheckSettings.vue';
 import BlocksSettings from '@/components/Common/BlocksSettings.vue';
 
 const bookmarks = useBookmarks();

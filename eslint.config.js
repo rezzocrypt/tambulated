@@ -20,6 +20,7 @@ export default [
         localStorage: 'readonly',
         URLSearchParams: 'readonly',
         fetch: 'readonly',
+        AbortController: 'readonly',
         DOMParser: 'readonly',
         btoa: 'readonly',
         TextEncoder: 'readonly',
