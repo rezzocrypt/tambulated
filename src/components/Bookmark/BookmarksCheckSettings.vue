@@ -3,7 +3,7 @@
     <button
       class="ops-btn"
       :class="{ open: open }"
-      @click="open = !open"
+      @click="togglePanel"
       :title="t('periodicOps')"
       :aria-label="t('periodicOps')"
       aria-haspopup="true"
@@ -18,9 +18,70 @@
       <div v-if="open" class="settings-pop" @click.stop>
         <div class="settings-head">{{ t('periodicOps') }}</div>
         <div class="settings-group">
-          <button class="check-btn" :disabled="isScanning" @click="run">
-            {{ isScanning ? t('deadScanRunning') : t('deadScan') }}
-          </button>
+          <div class="check-row">
+            <div class="target-picker">
+              <button
+                class="target-btn"
+                :disabled="isScanning"
+                :title="t('deadScanTarget')"
+                :aria-label="t('deadScanTarget')"
+                aria-haspopup="true"
+                :aria-expanded="treeOpen"
+                @click="treeOpen = !treeOpen"
+              >
+                <svg class="folder-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
+                <span class="target-name">{{ currentTargetLabel }}</span>
+                <svg class="chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              <transition name="pop">
+                <ul v-if="treeOpen" class="target-tree" role="menu" :aria-label="t('deadScanTarget')">
+                  <li>
+                    <button
+                      class="tree-row"
+                      :class="{ selected: targetId === '' }"
+                      role="menuitemradio"
+                      :aria-checked="targetId === ''"
+                      :disabled="isScanning"
+                      :title="t('deadScanTargetDefault')"
+                      @click="selectTarget('')"
+                    >
+                      <svg class="folder-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                      </svg>
+                      <span class="tree-name">{{ t('deadScanTargetDefault') }}</span>
+                      <span v-if="targetId === ''" class="tree-check">✓</span>
+                    </button>
+                  </li>
+                  <li v-for="item in folders" :key="item.id">
+                    <button
+                      class="tree-row"
+                      :class="{ selected: targetId === item.id }"
+                      role="menuitemradio"
+                      :aria-checked="targetId === item.id"
+                      :disabled="isScanning"
+                      :title="folderTitle(item)"
+                      :style="{ paddingLeft: `${6 + item.depth * 14}px` }"
+                      @click="selectTarget(item.id)"
+                    >
+                      <svg class="folder-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                      </svg>
+                      <span class="tree-name">{{ folderTitle(item) }}</span>
+                      <span v-if="targetId === item.id" class="tree-check">✓</span>
+                    </button>
+                  </li>
+                </ul>
+              </transition>
+            </div>
+            <button class="check-btn" :disabled="isScanning" @click="run">
+              {{ isScanning ? t('deadScanRunning') : t('deadScan') }}
+            </button>
+          </div>
           <div v-if="isScanning" class="check-status">
             <span>{{ t('deadScanProgress') }} {{ progress.done }}/{{ progress.total }}</span>
           </div>
@@ -37,25 +98,53 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useLocale } from '@/composables/useLocale.js';
 import { useBookmarks } from '@/composables/useBookmarks.js';
 import { useDeadBookmarks } from '@/composables/useDeadBookmarks.js';
 
 const { t } = useLocale();
 const bookmarks = useBookmarks();
-const { isScanning, progress, lastResult, scan } = useDeadBookmarks(bookmarks);
+const { isScanning, progress, lastResult, targetId, folders, scan } = useDeadBookmarks(bookmarks);
 const open = ref(false);
+const treeOpen = ref(false);
+
+const currentTargetLabel = computed(() => {
+  const selected = folders.value.find((item) => item.id === targetId.value);
+  return selected ? folderTitle(selected) : t('deadScanTargetDefault');
+});
+
+function folderTitle(item) {
+  return String(item.title ?? '').replace(/\s+/g, ' ').trim() || t('deadScanNoTitle');
+}
+
+function selectTarget(id) {
+  targetId.value = id;
+  treeOpen.value = false;
+}
+
+function togglePanel() {
+  open.value = !open.value;
+  if (!open.value) treeOpen.value = false;
+}
 
 async function run() {
   await scan();
 }
 
 function onDocumentClick(e) {
-  if (open.value && !e.target.closest('.settings')) open.value = false;
+  if (!open.value) return;
+  if (e.target.closest('.settings')) return;
+  open.value = false;
+  treeOpen.value = false;
 }
 function onKey(e) {
-  if (e.key === 'Escape') open.value = false;
+  if (e.key !== 'Escape') return;
+  if (treeOpen.value) {
+    treeOpen.value = false;
+    return;
+  }
+  open.value = false;
 }
 
 onMounted(() => {
@@ -104,7 +193,7 @@ onBeforeUnmount(() => {
     top: calc(100% + 10px);
     right: 0;
     z-index: 40;
-    width: 240px;
+    width: 300px;
     padding: 14px;
     background: var(--popup-bg);
     border: 1px solid var(--border);
@@ -121,18 +210,123 @@ onBeforeUnmount(() => {
     flex-direction: column;
     gap: 8px;
   }
+  .check-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .target-picker {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .target-btn {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 7px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  .target-btn:hover:not(:disabled) {
+    background: var(--popup-hover);
+  }
+  .target-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .folder-icon {
+    flex: 0 0 auto;
+    color: var(--text-secondary);
+  }
+  .target-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .chevron {
+    flex: 0 0 auto;
+    color: var(--text-secondary);
+    transition: transform 0.15s ease;
+  }
+  .target-btn[aria-expanded='true'] .chevron {
+    transform: rotate(180deg);
+  }
+  .target-tree {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 50;
+    width: 260px;
+    max-height: 220px;
+    margin: 0;
+    padding: 4px;
+    overflow-y: auto;
+    list-style: none;
+    background: var(--popup-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow);
+  }
+  .tree-row {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .tree-row:hover:not(:disabled) {
+    background: var(--popup-hover);
+  }
+  .tree-row.selected {
+    color: var(--accent);
+  }
+  .tree-row:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .tree-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tree-check {
+    flex: 0 0 auto;
+    font-size: 12px;
+  }
   .check-btn {
     appearance: none;
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     justify-content: center;
-    width: 100%;
     padding: 8px 10px;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--text-primary);
     font-size: 14px;
+    white-space: nowrap;
     cursor: pointer;
     transition: background-color 0.15s ease;
   }

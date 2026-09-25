@@ -1,11 +1,12 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import chromeAPI from '@/assets/chrome-mock.js';
-import { collectBookmarks } from '@/utils/bookmarkTree.js';
+import { collectBookmarks, collectFolders } from '@/utils/bookmarkTree.js';
 import { DEAD_SCAN_CONCURRENCY, DEAD_SCAN_TIMEOUT_MS, NOT_VALIDED_FOLDER } from '@/config.js';
 
 const isScanning = ref(false);
 const progress = ref({ done: 0, total: 0 });
 const lastResult = ref(null);
+const targetId = ref('');
 
 export function isWebUrl(url) {
   return /^https?:\/\//i.test(String(url ?? '').trim());
@@ -67,6 +68,18 @@ export function findNotValidedFolder(nodes) {
 
 export function useDeadBookmarks(bookmarks, options = {}) {
   const fetchImpl = options.fetchImpl;
+  const folders = computed(() => collectFolders(bookmarks.rootNode.value?.children));
+
+  function resolveTarget(roots) {
+    const selectedId = targetId.value;
+    if (selectedId) {
+      const selected = folders.value.find((item) => item.id === selectedId);
+      if (selected) return { id: selected.id, skipId: selected.id };
+      targetId.value = '';
+    }
+    const existing = findNotValidedFolder(roots);
+    return { id: existing?.id ?? null, skipId: existing?.id ?? null };
+  }
 
   async function scan() {
     if (isScanning.value) return lastResult.value;
@@ -76,9 +89,11 @@ export function useDeadBookmarks(bookmarks, options = {}) {
     try {
       await bookmarks.loadTree();
       const roots = bookmarks.bookmarksRoot.value ?? [];
-      const existing = findNotValidedFolder(roots);
-      const targets = roots.filter((node) => node !== existing);
-      const urls = collectBookmarks(targets);
+      const target = resolveTarget(roots);
+      const urls = collectBookmarks(
+        roots,
+        target.skipId == null ? null : (node) => node.id === target.skipId,
+      );
       progress.value = { done: 0, total: urls.length };
       const dead = await findDeadBookmarks(urls, {
         fetchImpl,
@@ -87,24 +102,24 @@ export function useDeadBookmarks(bookmarks, options = {}) {
         },
       });
       if (dead.length === 0) {
-        lastResult.value = { moved: 0, dead: [] };
+        lastResult.value = { moved: 0, dead: [], targetId: target.id };
         return lastResult.value;
       }
-      const folder = existing
-        ?? await chromeAPI.bookmarks.create({
+      const folderId = target.id
+        ?? (await chromeAPI.bookmarks.create({
           parentId: bookmarks.rootNode.value?.id,
           title: NOT_VALIDED_FOLDER,
-        });
+        })).id;
       for (const node of dead) {
-        await chromeAPI.bookmarks.move(node.id, { parentId: folder.id });
+        await chromeAPI.bookmarks.move(node.id, { parentId: folderId });
       }
       await bookmarks.reload();
-      lastResult.value = { moved: dead.length, dead };
+      lastResult.value = { moved: dead.length, dead, targetId: folderId };
       return lastResult.value;
     } finally {
       isScanning.value = false;
     }
   }
 
-  return { isScanning, progress, lastResult, scan };
+  return { isScanning, progress, lastResult, targetId, folders, scan };
 }

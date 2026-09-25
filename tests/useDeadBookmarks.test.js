@@ -8,7 +8,7 @@ import {
   findNotValidedFolder,
   useDeadBookmarks,
 } from '@/composables/useDeadBookmarks.js';
-import { collectBookmarks } from '@/utils/bookmarkTree.js';
+import { collectBookmarks, collectFolders } from '@/utils/bookmarkTree.js';
 import { NOT_VALIDED_FOLDER } from '@/config.js';
 
 function makeBookmarks(rootChildren, rootId = 'root') {
@@ -87,6 +87,26 @@ describe('collectBookmarks', () => {
   });
 });
 
+describe('collectFolders', () => {
+  it('returns every folder of the tree with its depth', () => {
+    const tree = [
+      folder('f1', 'A', [url('a1', 'https://a1.example'), folder('f2', 'B', [folder('f3', 'C', [])])]),
+      url('r1', 'https://r1.example'),
+      folder('f4', 'D', []),
+    ];
+    expect(collectFolders(tree)).toEqual([
+      { id: 'f1', title: 'A', depth: 0 },
+      { id: 'f2', title: 'B', depth: 1 },
+      { id: 'f3', title: 'C', depth: 2 },
+      { id: 'f4', title: 'D', depth: 0 },
+    ]);
+  });
+
+  it('ignores non-array input', () => {
+    expect(collectFolders(null)).toEqual([]);
+  });
+});
+
 describe('findDeadBookmarks', () => {
   it('reports progress up to total and returns dead nodes', async () => {
     const nodes = [url('ok', 'https://ok.example'), url('bad', 'https://bad.example')];
@@ -113,6 +133,62 @@ describe('findNotValidedFolder', () => {
 });
 
 describe('useDeadBookmarks', () => {
+  beforeEach(() => {
+    useDeadBookmarks(makeBookmarks([])).targetId.value = '';
+  });
+
+  it('exposes every tree folder as a destination option', async () => {
+    const bookmarks = makeBookmarks([
+      folder('f1', 'Готовые', [folder('f2', 'Старые', [url('deep', 'https://deep.example')])]),
+    ]);
+    const { folders } = useDeadBookmarks(bookmarks);
+    expect(folders.value).toEqual([
+      { id: 'f1', title: 'Готовые', depth: 0 },
+      { id: 'f2', title: 'Старые', depth: 1 },
+    ]);
+  });
+
+  it('moves dead bookmarks into the selected folder and never scans inside it', async () => {
+    const targetFolder = folder('pick-me', 'На проверку', [url('inside', 'https://inside-target.example')]);
+    const bookmarks = makeBookmarks([
+      targetFolder,
+      url('dead', 'https://dead.example'),
+      url('alive', 'https://alive.example'),
+    ]);
+    const create = vi.spyOn(chromeAPI.bookmarks, 'create');
+    const move = vi.spyOn(chromeAPI.bookmarks, 'move').mockReturnValue({});
+    const fetchImpl = vi.fn(async (target) => {
+      if (target.includes('dead')) throw new TypeError('Failed to fetch');
+      return { type: 'opaque', status: 0 };
+    });
+
+    const { scan, targetId } = useDeadBookmarks(bookmarks, { fetchImpl });
+    targetId.value = 'pick-me';
+    const result = await scan();
+
+    expect(create).not.toHaveBeenCalled();
+    expect(move).toHaveBeenCalledTimes(1);
+    expect(move).toHaveBeenCalledWith('dead', { parentId: 'pick-me' });
+    expect(fetchImpl).not.toHaveBeenCalledWith('https://inside-target.example', expect.anything());
+    expect(result.targetId).toBe('pick-me');
+  });
+
+  it('falls back to Not Valided when the selected folder no longer exists', async () => {
+    const bookmarks = makeBookmarks([url('dead', 'https://dead.example')]);
+    const create = vi.spyOn(chromeAPI.bookmarks, 'create').mockReturnValue({ id: 'nv-9' });
+    const move = vi.spyOn(chromeAPI.bookmarks, 'move').mockReturnValue({});
+    const fetchImpl = vi.fn(async () => { throw new TypeError('Failed to fetch'); });
+
+    const { scan, targetId } = useDeadBookmarks(bookmarks, { fetchImpl });
+    targetId.value = 'deleted-folder';
+    const result = await scan();
+
+    expect(targetId.value).toBe('');
+    expect(create).toHaveBeenCalledWith({ parentId: 'root', title: NOT_VALIDED_FOLDER });
+    expect(move).toHaveBeenCalledWith('dead', { parentId: 'nv-9' });
+    expect(result.targetId).toBe('nv-9');
+  });
+
   it('moves dead bookmarks into a new root folder and reloads', async () => {
     const bookmarks = makeBookmarks([
       folder('f1', 'Готовые', [url('dead', 'https://dead.example'), url('alive', 'https://alive.example')]),

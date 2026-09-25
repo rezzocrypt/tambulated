@@ -37,6 +37,17 @@ export function collectBookmarks(nodes, skip) {
   return result;
 }
 
+export function collectFolders(nodes, depth = 0, out = []) {
+  if (!Array.isArray(nodes)) return out;
+  for (const node of nodes) {
+    if (!node || typeof node !== 'object') continue;
+    if (!Array.isArray(node.children)) continue;
+    out.push({ id: node.id, title: node.title, depth });
+    collectFolders(node.children, depth + 1, out);
+  }
+  return out;
+}
+
 export function moveNode(tree, id, destination) {
   const node = findNode(tree, id);
   if (!node) return null;
