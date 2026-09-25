@@ -17,7 +17,11 @@
       <a
         :class="bookmark.url == undefined ? 'folder' : iconFn(bookmark)">
         <div class="icon-wrapper">
-          <div class="icon"></div>
+          <div class="icon">
+            <img v-if="faviconUrl(bookmark)" class="favicon-img"
+                 :src="faviconUrl(bookmark)" :alt="bookmark.title"
+                 @error="onFaviconError($event, bookmark)" />
+          </div>
         </div>
         <p class="label">{{ bookmark.title }}</p>
       </a>
@@ -34,6 +38,7 @@ export default {
     contextFn: { type: Function, default: null },
     backgroundContextFn: { type: Function, default: null },
     iconFn: { type: Function, default: null },
+    faviconUrlFn: { type: Function, default: null },
     dragStartFn: { type: Function, default: null },
     dropFn: { type: Function, default: null },
     dropRootFn: { type: Function, default: null },
@@ -42,6 +47,13 @@ export default {
     return { hoveredId: null };
   },
   methods: {
+    faviconUrl(bookmark) {
+      if (bookmark.url == undefined || !this.faviconUrlFn) return '';
+      return this.faviconUrlFn(bookmark);
+    },
+    onFaviconError(e, bookmark) {
+      e.target.style.display = 'none';
+    },
     onClick(bookmark) {
       if (this.clickFn) this.clickFn(bookmark);
     },
@@ -133,6 +145,15 @@ export default {
     height: 100%;
     background-size: cover !important;
     background-repeat: no-repeat !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .bookmark-item .favicon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
   }
   .bookmark-item a:hover .icon-wrapper {
     transform: translateY(-4px);
@@ -159,5 +180,5 @@ export default {
     outline-offset: 3px;
   }
   .bookmark-item .folder .icon { background: var(--vt-bookmark-folder-icon); }
-  .bookmark-item .icon { background: var(--vt-bookmark-file-icon); }
+  .bookmark-item .favicon .icon { background: var(--vt-bookmark-file-icon); }
 </style>

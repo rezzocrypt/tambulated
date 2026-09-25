@@ -38,28 +38,30 @@
     <div class="spinner"></div>
     <span>{{ t('loading') }}</span>
   </div>
-  <BookmarkGrid
-    v-if="viewMode === 'grid' && bookmarks.currentNode.value != null"
-    :items="bookmarks.currentNode.value"
-    :click-fn="clickByItem"
-    :context-fn="onContextMenu"
-    :background-context-fn="onBackgroundMenu"
-    :icon-fn="getIcon"
-    :drag-start-fn="dragStart"
-    :drop-fn="dropOn"
-    :drop-root-fn="dropToRoot"
-  />
-  <BookmarkTable
-    v-else-if="viewMode === 'table' && bookmarks.currentNode.value != null"
-    :items="bookmarks.currentNode.value"
-    :click-fn="clickByItem"
-    :context-fn="onContextMenu"
-    :background-context-fn="onBackgroundMenu"
-    :icon-fn="getIcon"
-    :drag-start-fn="dragStart"
-    :drop-fn="dropOn"
-    :drop-root-fn="dropToRoot"
-  />
+<BookmarkGrid
+     v-if="viewMode === 'grid' && bookmarks.currentNode.value != null"
+     :items="bookmarks.currentNode.value"
+     :click-fn="clickByItem"
+     :context-fn="onContextMenu"
+     :background-context-fn="onBackgroundMenu"
+     :icon-fn="getIcon"
+     :drag-start-fn="dragStart"
+     :drop-fn="dropOn"
+     :drop-root-fn="dropToRoot"
+     :favicon-url-fn="getFaviconUrl"
+   />
+   <BookmarkTable
+     v-else-if="viewMode === 'table' && bookmarks.currentNode.value != null"
+     :items="bookmarks.currentNode.value"
+     :click-fn="clickByItem"
+     :context-fn="onContextMenu"
+     :background-context-fn="onBackgroundMenu"
+     :icon-fn="getIcon"
+     :drag-start-fn="dragStart"
+     :drop-fn="dropOn"
+     :drop-root-fn="dropToRoot"
+     :favicon-url-fn="getFaviconUrl"
+   />
   <context-menu v-model:show="ctxMenu.show" :options="ctxMenu">
     <component
       :is="menuItem.component || 'ContextMenuItem'"
@@ -132,6 +134,8 @@ const dialog = ref({
 });
 const dialogInput = ref(null);
 
+import { PLATFORM_ICONS } from '@/assets/platform-icons.js';
+
 function getDomainFromUrl(url) {
   const regex = /^(?:https?:\/\/)?(?:www\.)?([^/?#]+)/i;
   const match = url.match(regex);
@@ -140,7 +144,15 @@ function getDomainFromUrl(url) {
 
 function getIcon(bookmark) {
   const domain = getDomainFromUrl(bookmark.url);
-  return domain ? domain.replaceAll('.', '_') : 'file';
+  if (!domain) return 'file';
+  return PLATFORM_ICONS[domain] ? domain.replaceAll('.', '_') : 'favicon';
+}
+
+function getFaviconUrl(bookmark) {
+  const domain = getDomainFromUrl(bookmark.url);
+  if (!domain) return '';
+  if (PLATFORM_ICONS[domain]) return PLATFORM_ICONS[domain];
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
 }
 
 function setViewMode(mode) {

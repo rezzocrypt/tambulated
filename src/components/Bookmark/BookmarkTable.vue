@@ -26,7 +26,11 @@
             @dragend="onDragEnd">
           <td class="td-icon">
             <a :class="bookmark.url == undefined ? 'folder' : iconFn(bookmark)">
-              <div class="icon"></div>
+              <div class="icon">
+                <img v-if="faviconUrl(bookmark)" class="favicon-img"
+                     :src="faviconUrl(bookmark)" :alt="bookmark.title"
+                     @error="onFaviconError($event)" />
+              </div>
             </a>
           </td>
           <td class="td-title">
@@ -50,6 +54,7 @@ export default {
     contextFn: { type: Function, default: null },
     backgroundContextFn: { type: Function, default: null },
     iconFn: { type: Function, default: null },
+    faviconUrlFn: { type: Function, default: null },
     dragStartFn: { type: Function, default: null },
     dropFn: { type: Function, default: null },
     dropRootFn: { type: Function, default: null },
@@ -58,6 +63,13 @@ export default {
     return { hoveredId: null };
   },
   methods: {
+    faviconUrl(bookmark) {
+      if (bookmark.url == undefined || !this.faviconUrlFn) return '';
+      return this.faviconUrlFn(bookmark);
+    },
+    onFaviconError(e) {
+      e.target.style.display = 'none';
+    },
     onClick(bookmark) {
       if (this.clickFn) this.clickFn(bookmark);
     },
@@ -179,6 +191,16 @@ export default {
     background-size: cover !important;
     background-repeat: no-repeat !important;
     border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .bookmark-table .td-icon .favicon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 3px;
   }
   .bookmark-table .td-title {
     width: 35%;
@@ -194,5 +216,5 @@ export default {
     text-overflow: ellipsis;
   }
   .bookmark-table .folder .icon { background: var(--vt-bookmark-folder-icon); }
-  .bookmark-table .icon { background: var(--vt-bookmark-file-icon); }
+  .bookmark-table .favicon .icon { background: var(--vt-bookmark-file-icon); }
 </style>
